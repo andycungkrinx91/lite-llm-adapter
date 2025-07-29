@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: lite_llm_adapter
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the local models directory into the container
+      # This avoids rebuilding the image every time you add a model
+      - ./models/gguf_models:/app/models/gguf_models
+    # For serving LLMs, it's best to use a single worker to avoid duplicating models in memory.
+    # Concurrency is handled inside the app with asyncio and the concurrency_manager.
+    # We use Gunicorn as a process manager for Uvicorn workers for production-grade stability.
+    # -k uvicorn.workers.UvicornWorker: Use Uvicorn's high-performance worker class.
+    # -w 1: Use a single worker to avoid duplicating the LLM in memory.
+    # --timeout 120: Increase the worker timeout to handle long-running inference tasks.
+    # --bind 0.0.0.0:8000: Bind to the correct host and port.
+    command: gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 120 --pythonpath /app main:app --bind 0.0.0.0:8000
+    # To enable GPU access, uncomment the following section
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis_db
+    ports:
+      - "6379:6379"
+    restart: unless-stopped

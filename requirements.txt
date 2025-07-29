@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+llama-cpp-python
+pydantic
+redis
+sse-starlette
+pydantic-settings
+gunicorn
