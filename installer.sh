@@ -6,15 +6,6 @@
 # Stop on any error
 set -e
 
-# --- Configuration ---
-APP_USER="llm_backend"
-APP_GROUP="llm_backend"
-APP_DIR="/home/app/site/lite-llm-adapter"
-MODEL_DIR="$APP_DIR/models/gguf_models"
-VENV_DIR="$APP_DIR/venv"
-LOG_DIR="$APP_DIR/logs"
-SERVICE_NAME="lite-llm-adapter"
-
 # --- Helper Functions ---
 info() {
     echo "[INFO] $1"
@@ -37,12 +28,52 @@ if [ "$(id -u)" -ne 0 ]; then
     error "This script must be run as root. Please use 'sudo ./installer.sh'."
 fi
 
-info "Starting Lite-LLM Adapter installation..."
+# --- Configuration Setup ---
+NON_INTERACTIVE=false
+if [[ "$1" == "--non-interactive" ]]; then
+    NON_INTERACTIVE=true
+fi
 
+if [ "$NON_INTERACTIVE" = true ]; then
+    info "Running in non-interactive mode for automated testing. Using defaults."
+    # These values are set to match the expectations of the local-test.sh script.
+    APP_USER="llm_backend"
+    APP_GROUP="llm_backend"
+    APP_BASE_DIR="/home/app"
+else
+    # --- Interactive Configuration ---
+    info "--- Interactive Setup ---"
+    info "You will be asked to provide configuration values for the installation."
+    info "Press Enter to accept the default value shown in brackets."
+    echo "" # Add a newline for readability
+
+    # Prompt for Application User
+    read -p "Enter the username for the application [default: app]: " APP_USER
+    APP_USER=${APP_USER:-app}
+
+    # Prompt for Application Group
+    read -p "Enter the group name for the application [default: $APP_USER]: " APP_GROUP
+    APP_GROUP=${APP_GROUP:-$APP_USER}
+
+    # Prompt for Application Base Directory, which will be owned by the app user
+    DEFAULT_APP_BASE_DIR="/home/$APP_USER"
+    read -p "Enter the base directory for the application [default: $DEFAULT_APP_BASE_DIR]: " APP_BASE_DIR
+    APP_BASE_DIR=${APP_BASE_DIR:-$DEFAULT_APP_BASE_DIR}
+fi
+
+# --- Derived Configuration (do not change) ---
+APP_DIR="$APP_BASE_DIR/site/lite-llm-adapter"
+MODEL_DIR="$APP_DIR/models/gguf_models"
+VENV_DIR="$APP_DIR/venv"
+LOG_DIR="$APP_DIR/logs"
+SERVICE_NAME="lite-llm-adapter"
+
+info "Starting Lite-LLM Adapter installation..."
 # --- 1. System Dependencies ---
-info "Updating package lists and installing dependencies (python3.12, venv, pip, redis, rsync)..."
+info "Updating package lists and installing dependencies..."
+info "This includes build-essential and libopenblas-dev for compiling llama-cpp-python with CPU acceleration."
 apt-get update
-apt-get install -y python3.12 python3.12-venv python3-pip redis-server rsync
+apt-get install -y python3.12 python3.12-venv python3-pip redis-server rsync build-essential libopenblas-dev
 
 info "Enabling and starting Redis service..."
 systemctl enable --now redis-server.service
@@ -73,8 +104,11 @@ rsync -a --exclude='models/gguf_models/*' --exclude='.git/' "$SCRIPT_DIR/" "$APP
 info "Creating Python virtual environment at $VENV_DIR..."
 python3.12 -m venv "$VENV_DIR"
 
-info "Installing Python dependencies into the virtual environment..."
-"$VENV_DIR/bin/pip" install --no-cache-dir -r "$APP_DIR/requirements.txt"
+info "Installing Python dependencies with OpenBLAS acceleration for llama-cpp-python..."
+# The CMAKE_ARGS environment variable instructs pip to build llama-cpp-python from source
+# with BLAS support, which significantly improves performance on CPUs.
+# The --no-binary flag ensures it's built locally instead of using a pre-compiled wheel.
+CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" "$VENV_DIR/bin/pip" install --no-cache-dir --no-binary llama-cpp-python -r "$APP_DIR/requirements.txt"
 
 # --- 4. Configuration (.env file) ---
 info "Creating production .env file..."
@@ -84,7 +118,10 @@ ENVIRONMENT=prod
 DEFAULT_MODEL_ID=qwen3-0.6b
 MODEL_BASE_PATH=$MODEL_DIR
 REDIS_URL=redis://localhost:6379
-CPU_THREADS=$(nproc)
+# Use half of the available CPU cores for inference to balance performance and system stability.
+# This prevents the service from consuming 100% CPU during requests.
+# The calculation ensures at least 1 thread is used.
+CPU_THREADS=$(( $(nproc) / 2 > 0 ? $(nproc) / 2 : 1 ))
 AUTH=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')
 MAX_CONCURRENT_REQUESTS=3
 EOF
@@ -95,12 +132,11 @@ warn "AUTH Token: $(grep AUTH "$APP_DIR/.env" | cut -d '=' -f2)"
 
 # --- 5. Set Permissions ---
 info "Setting ownership and permissions..."
-chown -R "$APP_USER":"$APP_GROUP" "$APP_DIR"
-chown -R "$APP_USER":"$APP_GROUP" "$LOG_DIR"
-chown -R "$APP_USER":"$APP_GROUP" "$MODEL_DIR"
-chmod -R 750 "$APP_DIR"
-chmod -R 750 "$LOG_DIR"
-chmod -R 750 "$MODEL_DIR"
+# Change ownership of the entire application structure to the app user.
+# This is crucial to fix the 'CHDIR' error by ensuring the systemd service user can access its WorkingDirectory.
+chown -R "$APP_USER":"$APP_GROUP" "$APP_BASE_DIR"
+# Set permissions: User and Group have read/write/execute, others have none.
+chmod -R u=rwx,g=rwx,o=--- "$APP_BASE_DIR"
 
 # --- 6. Create systemd Service File ---
 info "Creating systemd service file for '$SERVICE_NAME'..."

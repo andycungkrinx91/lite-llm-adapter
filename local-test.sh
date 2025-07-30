@@ -123,7 +123,8 @@ info "Mounting project directory into the container at /root/project..."
 lxc config device add "$CONTAINER_NAME" project-source disk source="$PROJECT_DIR" path=/root/project
 
 info "Running the installer.sh script inside the container..."
-lxc exec "$CONTAINER_NAME" -- /bin/bash /root/project/installer.sh
+info "Using --non-interactive flag for automated setup."
+lxc exec "$CONTAINER_NAME" -- /bin/bash /root/project/installer.sh --non-interactive
 
 info "Running the models-downloader.sh script for 'dev' environment..."
 # We must change into the application directory before running the script,
