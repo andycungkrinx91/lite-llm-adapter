@@ -51,6 +51,7 @@ The `models-downloader.sh` script can fetch models for either a `dev` or `prod` 
 #### Option A: Docker Deployment (Recommended)
 
 1.  **Create Environment File**: Copy the example and generate a secret key.
+    > **Note**: The `docker-compose.yml` file is configured to automatically connect to the Redis container using its service name (`redis`), so you don't need to change `REDIS_URL` in the `.env` file for Docker.
     ```bash
     cp .env.example .env
     # The .env file will be pre-filled, but you can customize it.

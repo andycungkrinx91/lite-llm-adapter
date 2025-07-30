@@ -6,6 +6,10 @@ services:
     container_name: lite_llm_adapter
     env_file:
       - .env
+    environment:
+      # Override the REDIS_URL from the .env file for the Docker environment.
+      # Inside Docker Compose, services can reach each other using their service name.
+      - REDIS_URL=redis://redis:6379
     ports:
       - "8000:8000"
     volumes:
