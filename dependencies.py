@@ -35,8 +35,13 @@ async def verify_api_key(
     if not api_key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authorization header is missing")
     
-    # Expects "Bearer <token>"
-    if api_key != f"Bearer {config.AUTH}":
+    # Accommodate both "Bearer <token>" and just "<token>" for better usability.
+    token = api_key
+    prefix = "Bearer "
+    if api_key.startswith(prefix):
+        token = api_key[len(prefix):]
+
+    if token != config.AUTH:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired API Key")
 
 def get_redis_client(request: Request) -> redis.Redis:

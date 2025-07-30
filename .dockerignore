@@ -1,0 +1,11 @@
+# This file tells Docker which files and directories to ignore when building an image.
+# It helps to keep the image small and prevent sensitive or unnecessary files from being included.
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+.git
+.github

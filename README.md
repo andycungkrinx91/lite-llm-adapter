@@ -54,8 +54,10 @@ The `models-downloader.sh` script can fetch models for either a `dev` or `prod` 
     > **Note**: The `docker-compose.yml` file is configured to automatically connect to the Redis container using its service name (`redis`), so you don't need to change `REDIS_URL` in the `.env` file for Docker.
     ```bash
     cp .env.example .env
-    # The .env file will be pre-filled, but you can customize it.
-    # A unique AUTH token is generated automatically.
+    # Generate a secure, random API key and update the .env file.
+    AUTH_TOKEN=$(head /dev/urandom | tr -dc A-Za-z0--9 | head -c 64)
+    sed -i "s/AUTH=.*/AUTH=$AUTH_TOKEN/" .env
+    echo "A new secret AUTH token has been generated in your .env file."
     ```
 
 2.  **Launch Services**: Use Docker Compose to build and run the backend and Redis containers.

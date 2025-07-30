@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 import redis.asyncio as redis
 
-from models.model_loader import get_model, MODELS
+from models.model_loader import get_model, MODEL_CONFIGS
 from dependencies import get_app_config, AppConfig, verify_api_key, get_redis_client
 from schemas.openai_types import ChatCompletionRequest
 
@@ -18,7 +18,7 @@ async def list_models(_: dict = Depends(verify_api_key)):
     """Lists the currently available models."""
     return {
         "object": "list",
-        "data": [{"id": model_id, "object": "model", "owned_by": "user"} for model_id in MODELS.keys()],
+        "data": [{"id": model_id, "object": "model", "owned_by": "user"} for model_id in MODEL_CONFIGS.keys()],
     }
 
 @router.post("/v1/chat/completions", tags=["Chat"])
@@ -34,11 +34,12 @@ async def create_chat_completion(
     """
     model_id = request.model or app_config.DEFAULT_MODEL_ID
     llm = get_model(model_id)
+    model_config = MODEL_CONFIGS.get(model_id)
 
-    if not llm:
+    if not llm or not model_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model '{model_id}' not found. Available models: {list(MODELS.keys())}"
+            detail=f"Model '{model_id}' not found or is misconfigured. Available models: {list(MODEL_CONFIGS.keys())}"
         )
 
     # --- Session Management ---
@@ -56,8 +57,9 @@ async def create_chat_completion(
     incoming_messages = [msg.model_dump() for msg in request.messages]
     messages_as_dicts = history + incoming_messages
 
-    # Extract generation parameters from the request, excluding model and messages,
-    # to pass them to the model's generation function.
+    # --- Parameter Extraction ---
+    # Extract generation parameters from the request. The LocalLLM service will handle
+    # merging these with the model's own default parameters.
     request_params = request.model_dump(exclude_unset=True, exclude={"model", "messages", "stream", "session_id"})
 
     # --- Redis Queueing Logic ---

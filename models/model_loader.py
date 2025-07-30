@@ -5,7 +5,10 @@ from typing import Dict, Optional, Any
 from services.local_llm import LocalLLM
 from dependencies import AppConfig
 
-MODELS: Dict[str, Any] = {}
+# MODEL_CONFIGS stores the raw configuration dictionaries from the JSON file.
+MODEL_CONFIGS: Dict[str, Any] = {}
+# LLM_INSTANCES stores the actual, loaded LocalLLM objects.
+LLM_INSTANCES: Dict[str, LocalLLM] = {}
 
 def load_models(app_config: AppConfig):
     """
@@ -18,7 +21,7 @@ def load_models(app_config: AppConfig):
     
     print(f"Running in '{env}' mode. Loading models from '{config_filename}'...")
 
-    try:
+    try: # Read the main config file
         with open(config_path, 'r') as f:
             model_configs = json.load(f)
     except FileNotFoundError:
@@ -26,6 +29,11 @@ def load_models(app_config: AppConfig):
         return
 
     print(f"Found {len(model_configs)} model(s) in configuration.")
+    # First, populate the MODEL_CONFIGS dictionary with all configurations.
+    for config in model_configs:
+        if "id" in config:
+            MODEL_CONFIGS[config["id"]] = config
+
     for model_config in model_configs:
         model_id = model_config.get("id")
         model_type = model_config.get("model_type")
@@ -51,7 +59,7 @@ def load_models(app_config: AppConfig):
             params["n_threads"] = app_config.CPU_THREADS
 
             try:
-                MODELS[model_id] = LocalLLM(
+                LLM_INSTANCES[model_id] = LocalLLM(
                     model_path=model_path,
                     model_id=model_id,
                     params=params
@@ -69,4 +77,4 @@ def load_models(app_config: AppConfig):
 
 def get_model(model_id: str) -> Optional[Any]:
     """Retrieves a loaded model instance by its ID."""
-    return MODELS.get(model_id)
+    return LLM_INSTANCES.get(model_id)
