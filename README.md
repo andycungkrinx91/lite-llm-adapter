@@ -77,24 +77,26 @@ The `installer.sh` script automates the setup of a production-ready service on a
     ```
     This script will:
     - Install dependencies (`python3.12`, `redis-server`, etc.).
-    - Create a dedicated system user (`llm_backend`).
-    - Set up the application in `/home/app/site/multi-llm-adapter`.
+    - Create a dedicated system user (defaults to `app`).
+    - Set up the application in a structured directory (e.g., `/home/app/site/lite-llm-adapter`).
     - Create a production `.env` file with a secure, random `AUTH` token.
     - Configure and enable a `systemd` service.
 
-2.  **Start the Service**:
+2.  **Start and Manage the Service**:
     ```bash
-    sudo systemctl start multi-llm-backend
+    # Start the service
+    sudo systemctl start lite-llm-adapter
+
+    # Check its status
+    sudo systemctl status lite-llm-adapter
+
+    # View live logs
+    sudo journalctl -u lite-llm-adapter -f
     ```
 
-3.  **Check Status and Logs**:
-    ```bash
-    # Check status
-    sudo systemctl status multi-llm-backend
+#### Updating the Service
 
-    # View logs
-    sudo journalctl -u multi-llm-backend -f
-    ```
+To update your `systemd` deployment to the latest version from the git repository, a simple `update.sh
 
 ---
 

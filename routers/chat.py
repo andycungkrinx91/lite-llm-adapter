@@ -33,13 +33,23 @@ async def create_chat_completion(
     This endpoint uses Redis for queuing and session management.
     """
     model_id = request.model or app_config.DEFAULT_MODEL_ID
-    llm = get_model(model_id)
-    model_config = MODEL_CONFIGS.get(model_id)
+
+    # --- Case-Insensitive Model Lookup ---
+    # Find the correct model ID by performing a case-insensitive search.
+    # This improves usability as users might not match the exact case.
+    found_model_id = None
+    for available_id in MODEL_CONFIGS.keys():
+        if available_id.lower() == model_id.lower():
+            found_model_id = available_id
+            break
+
+    llm = get_model(found_model_id) if found_model_id else None
+    model_config = MODEL_CONFIGS.get(found_model_id) if found_model_id else None
 
     if not llm or not model_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model '{model_id}' not found or is misconfigured. Available models: {list(MODEL_CONFIGS.keys())}"
+            detail=f"Model '{model_id}' not found or is misconfigured. Available models: {list(MODEL_CONFIGS.keys())}",
         )
 
     # --- Session Management ---
