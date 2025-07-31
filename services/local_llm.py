@@ -36,6 +36,13 @@ class LocalLLM:
         try:
             # Start with the model's default generation parameters
             final_params = self.generation_params.copy()
+
+            # Sanitize incoming kwargs to remove parameters that are part of the
+            # OpenAI spec but not supported by llama-cpp-python's generation method.
+            unsupported_keys = {"user"}
+            for key in unsupported_keys:
+                kwargs.pop(key, None)
+
             # Update with any user-provided parameters, which will take precedence
             final_params.update(kwargs)
 

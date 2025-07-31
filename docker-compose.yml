@@ -31,6 +31,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    # This healthcheck curls the app's own /health endpoint to ensure it's running.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   redis:
@@ -39,8 +45,8 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-h", "redis", "--raw", "ping"]
       interval: 1s
-      timeout: 3s
+      timeout: 60s
       retries: 30
     restart: unless-stopped

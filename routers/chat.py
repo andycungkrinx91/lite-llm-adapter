@@ -7,6 +7,7 @@ import redis.asyncio as redis
 
 from models.model_loader import get_model, MODEL_CONFIGS, FAILED_MODELS
 from dependencies import get_app_config, AppConfig, verify_api_key, get_redis_client
+from services.concurrency_manager import RedisQueueSlot
 from schemas.openai_types import ChatCompletionRequest
 
 logger = logging.getLogger(__name__)
@@ -104,62 +105,49 @@ async def create_chat_completion(
     # Extract generation parameters from the request. The LocalLLM service will handle
     # merging these with the model's own default parameters.
     request_params = request.model_dump(exclude_unset=True, exclude={"model", "messages", "stream", "session_id"})
-
-    # --- Redis Queueing Logic ---
-    queue_key = f"{app_config.REDIS_KEY_PREFIX}:processing_slots"
-    slot = None
     
-    # Only use the queue if it's enabled (max_requests > 0)
-    if app_config.MAX_CONCURRENT_REQUESTS > 0:
-        logger.info(f"Request for model '{found_model_id}' is waiting for a processing slot...")
-        try:
-            # Block and wait for a slot for up to 2 minutes.
-            slot = await redis_client.blpop(queue_key, timeout=120)
-        except Exception as e:
-            logger.error(f"Redis blpop command failed: {e}")
-            raise HTTPException(status_code=503, detail="Could not connect to request queue.")
+    # Use the context manager to handle acquiring and releasing the processing slot.
+    # This simplifies the code and ensures the slot is always returned.
+    async with RedisQueueSlot(redis_client, app_config, found_model_id):
+        if request.stream:
+            async def stream_generator():
+                try:
+                    response_generator = llm.create_chat_completion(
+                        messages=messages_as_dicts, stream=True, **request_params
+                    )
+                    
+                    first_chunk = True
+                    full_response_content = ""
+
+                    for chunk in response_generator:
+                        # The first chunk from the model is special. We inject the session_id
+                        # into it. This ensures the client receives the session_id without
+                        # breaking the OpenAI streaming protocol, as every yielded object
+                        # is a valid chat completion chunk.
+                        if first_chunk:
+                            chunk['session_id'] = session_id
+                            first_chunk = False
+
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        if "content" in delta:
+                            full_response_content += delta.get("content", "")
+                        yield json.dumps(chunk)
+
+                    # After the stream is finished, update the session history in Redis
+                    if full_response_content:
+                        assistant_message = {"role": "assistant", "content": full_response_content}
+                        updated_history = messages_as_dicts + [assistant_message]
+                        await redis_client.set(session_key, json.dumps(updated_history), ex=3600) # 1-hour expiry
+
+                except Exception as e:
+                    logger.error(f"Error during model generation stream: {e}", exc_info=True)
+                    # Provide a more detailed error message to the client for easier debugging.
+                    error_message = f"An error occurred during stream generation: {str(e)}"
+                    error_payload = {"error": {"message": error_message}}
+                    yield json.dumps(error_payload)
+
+            return EventSourceResponse(stream_generator(), media_type="text/event-stream")
         
-        logger.info(f"Processing slot acquired for model '{found_model_id}'. Starting generation.")
-        
-        if slot is None:
-            raise HTTPException(status_code=503, detail="All processing slots are busy; request timed out.")
-
-    if request.stream:
-        async def stream_generator():
-            nonlocal slot # Ensure we can modify the slot variable from the outer scope
-            try:
-                response_generator = llm.create_chat_completion(
-                    messages=messages_as_dicts, stream=True, **request_params
-                )
-                
-                full_response_content = ""
-                # Yield a first chunk with the session_id
-                yield json.dumps({"session_id": session_id})
-
-                for chunk in response_generator:
-                    delta = chunk.get("choices", [{}])[0].get("delta", {})
-                    if "content" in delta:
-                        full_response_content += delta.get("content", "")
-                    yield json.dumps(chunk)
-
-                # After the stream is finished, update the session history in Redis
-                if full_response_content:
-                    assistant_message = {"role": "assistant", "content": full_response_content}
-                    updated_history = messages_as_dicts + [assistant_message]
-                    await redis_client.set(session_key, json.dumps(updated_history), ex=3600) # 1-hour expiry
-
-            except Exception as e:
-                logger.error(f"Error during model generation stream: {e}", exc_info=True)
-                error_payload = {"error": {"message": "Error during stream generation."}}
-                yield json.dumps(error_payload)
-            finally:
-                # Always return the processing slot to the queue
-                if slot:
-                    await redis_client.rpush(queue_key, "1")
-                    slot = None # Mark slot as returned
-
-        return EventSourceResponse(stream_generator(), media_type="text/event-stream")
-    else:
         # Non-streaming logic
         try:
             response = llm.create_chat_completion(
@@ -181,7 +169,3 @@ async def create_chat_completion(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"An error occurred during model generation: {e}"
             )
-        finally:
-            # Always return the processing slot to the queue
-            if slot:
-                await redis_client.rpush(queue_key, "1")

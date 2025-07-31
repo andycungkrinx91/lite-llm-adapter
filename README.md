@@ -13,7 +13,7 @@ This project provides a high-performance, scalable, and production-ready adapter
 - **Scalable Concurrency Management**: Uses a Redis-based queue to manage concurrent requests, ensuring smooth processing even under high load and enabling horizontal scaling.
 - **Stateful Conversations**: Offloads chat history to Redis, allowing for persistent, multi-turn conversations via a `session_id`.
 - **Streaming & Non-Streaming**: Natively supports both streaming (`text/event-stream`) and standard JSON responses.
-- **Secure API**: Protects endpoints with token-based authentication.
+- **Secure API**: Protects endpoints with token-based authentication (bearer token).
 - **Robust Deployment & Updates**: Includes a `docker-compose.yml` for quick containerized setup and an interactive `installer.sh` for production `systemd` deployments. A dedicated `update.sh` script handles safe, non-destructive updates.
 - **Automated Local Testing**: A powerful `local-test.sh` script creates a clean, isolated LXC container to run a full, automated end-to-end installation and test.
 - **Enhanced Error Handling**: Provides clear, actionable error messages for common issues like missing model files or misconfigurations.
@@ -51,7 +51,7 @@ The `models-downloader.sh` script can fetch models for either a `dev` or `prod` 
 
 ### 3. Choose Your Deployment Method
 
-#### Option A: Docker Deployment (Recommended)
+#### Docker Deployment (Recommended)
 
 1.  **Create Environment File**: Copy the example and generate a secret key.
     > **Note**: The `docker-compose.yml` file is configured to automatically connect to the Redis container using its service name (`redis`), so you don't need to change `REDIS_URL` in the `.env` file for Docker.
@@ -70,7 +70,7 @@ The `models-downloader.sh` script can fetch models for either a `dev` or `prod` 
 
 The API will be available at `http://localhost:8000`.
 
-#### Option B: Systemd Deployment (Production on Linux)
+#### Systemd Deployment (Production on Linux)
 
 The `installer.sh` script automates the setup of a production-ready service on a Debian-based system (like Ubuntu 24.04).
 
@@ -212,6 +212,26 @@ curl http://localhost:8000/v1/chat/completions \
     ],
     "stream": true
   }'
+```
+
+---
+
+## 🩺 Troubleshooting
+
+If you encounter errors like "An error occurred during model generation," your first step should be to check the application logs. The logs contain detailed tracebacks that are essential for debugging.
+
+#### Docker Deployment
+
+To view the logs for the backend service:
+```bash
+docker-compose logs backend
+```
+
+#### Systemd Deployment
+
+To view the live logs for the systemd service:
+```bash
+sudo journalctl -u lite-llm-adapter -f
 ```
 
 ---
