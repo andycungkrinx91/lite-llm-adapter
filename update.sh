@@ -38,15 +38,33 @@ if [ -z "$APP_USER" ] || [ -z "$APP_DIR" ]; then
     error "Could not determine application user or directory from $SERVICE_FILE. The service file may be corrupted."
 fi
 
-# Determine the environment to update to. Default to 'prod' if not specified.
-ENVIRONMENT=${1:-prod}
+# Determine the environment to update to.
+if [ -n "$1" ]; then
+    ENVIRONMENT="$1"
+else
+    info "No environment specified. Please choose which environment to update to."
+    PS3="Select an option: "
+    select env_choice in "dev" "prod"; do
+        if [[ -n "$env_choice" ]]; then
+            ENVIRONMENT="$env_choice"
+            break
+        else
+            echo "Invalid selection. Please choose 1 or 2."
+        fi
+    done
+fi
+
+if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "prod" ]]; then
+    error "Invalid environment specified: '$ENVIRONMENT'. Must be 'dev' or 'prod'."
+fi
 
 # --- Main Update Logic ---
 info "Starting application update process..."
 info "Application directory: $APP_DIR"
 info "Application user: $APP_USER"
+info "Target environment: $ENVIRONMENT"
 
-read -p "This will discard any local changes, pull the latest code, and restart the service. Are you sure? (y/N) " -n 1 -r
+read -p "This will discard any local changes, pull the latest code, and restart the service for the '$ENVIRONMENT' environment. Are you sure? (y/N) " -n 1 -r
 echo # Move to a new line
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     info "Update cancelled by user."

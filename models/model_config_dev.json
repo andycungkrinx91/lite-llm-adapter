@@ -3,6 +3,7 @@
     "id": "qwen3-0.6b",
     "model_type": "local_gguf",
     "path": "Qwen3-0.6B-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
     "chat_format": "chatml",
     "params": {
       "n_ctx": 4096,
@@ -14,10 +15,12 @@
     "id": "qwen2.5-coder-0.5b",
     "model_type": "local_gguf",
     "path": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant.",
     "chat_format": "chatml",
     "params": {
       "n_ctx": 4096,
-      "n_batch": 512
+      "n_batch": 512,
+      "verbose": true
     }
   }
 ]
