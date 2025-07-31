@@ -38,6 +38,9 @@ if [ -z "$APP_USER" ] || [ -z "$APP_DIR" ]; then
     error "Could not determine application user or directory from $SERVICE_FILE. The service file may be corrupted."
 fi
 
+# Determine the environment to update to. Default to 'prod' if not specified.
+ENVIRONMENT=${1:-prod}
+
 # --- Main Update Logic ---
 info "Starting application update process..."
 info "Application directory: $APP_DIR"
@@ -53,17 +56,22 @@ fi
 info "Fetching the latest code from git..."
 # Running git commands as the application user for correct permissions.
 # We use 'git reset --hard' to ensure a clean update, discarding any local modifications.
-sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && git fetch origin && git reset --hard origin/main"
+sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && git fetch origin && git reset --hard origin/master"
 
 info "Stopping the '$SERVICE_NAME' service..."
 systemctl stop "$SERVICE_NAME"
 info "Service stopped."
 
+info "Setting environment to '$ENVIRONMENT' in .env file..."
+# Use sed to update the ENVIRONMENT variable in the .env file, running as the app user.
+sudo -u "$APP_USER" -- sed -i "s/^ENVIRONMENT=.*/ENVIRONMENT=$ENVIRONMENT/" "$APP_DIR/.env"
+
 info "Updating Python dependencies..."
 sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && CMAKE_ARGS='-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS' '$VENV_DIR/bin/pip' install --no-cache-dir -r requirements.txt"
 
 info "Checking for new or updated models to download..."
-sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && ./models-downloader.sh prod"
+info "This will download new models from the config without deleting existing ones."
+sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && ./models-downloader.sh '$ENVIRONMENT' --no-cleanup"
 
 info "Restarting the '$SERVICE_NAME' service with the updated code..."
 systemctl restart "$SERVICE_NAME"
