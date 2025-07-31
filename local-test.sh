@@ -19,8 +19,8 @@ readonly BASE_IMAGE="ubuntu:24.04" # Use the dedicated Ubuntu remote for better 
 
 # Get the absolute path of the directory where this script is located. This is more reliable than 'pwd'.
 readonly PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-readonly APP_USER="llm_backend"
-readonly APP_DIR="/home/app/site/lite-llm-adapter"
+readonly APP_USER="llm_backend" # This must match the user in installer.sh --non-interactive
+readonly APP_INSTALL_DIR="/home/app/site/lite-llm-adapter" # This must match the dir in installer.sh
 
 # --- Helper Functions ---
 info() {
@@ -116,20 +116,24 @@ info "Waiting for container to boot and initialize..."
 lxc exec "$CONTAINER_NAME" -- cloud-init status --wait
 
 # --- 3. Deploy and Setup Application ---
-info "Setting up proxy device to forward port 8000 to localhost..."
+info "Configuring container devices..."
 lxc config device add "$CONTAINER_NAME" api-proxy proxy listen=tcp:0.0.0.0:8000 connect=tcp:127.0.0.1:8000
+lxc config device add "$CONTAINER_NAME" project-source disk source="$PROJECT_DIR" path=/app
 
-info "Mounting project directory into the container at /root/project..."
-lxc config device add "$CONTAINER_NAME" project-source disk source="$PROJECT_DIR" path=/root/project
+info "Ensuring installer scripts are executable..."
+# Make the main installer executable.
+chmod +x "$PROJECT_DIR/installer.sh"
+# Also make all the modular install scripts executable (if any were added).
+chmod +x "$PROJECT_DIR"/??-*/install.sh 2>/dev/null || true
 
 info "Running the installer.sh script inside the container..."
 info "Using --non-interactive flag for automated setup."
-lxc exec "$CONTAINER_NAME" -- /bin/bash /root/project/installer.sh --non-interactive
+lxc exec "$CONTAINER_NAME" -- /bin/bash /app/installer.sh --non-interactive
 
 info "Running the models-downloader.sh script for 'dev' environment..."
 # We must change into the application directory before running the script,
 # so it has the correct permissions to create the 'models' sub-directory.
-lxc exec "$CONTAINER_NAME" -- sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && ./models-downloader.sh dev"
+lxc exec "$CONTAINER_NAME" -- sudo -u "$APP_USER" -- sh -c "cd '$APP_INSTALL_DIR' && ./models-downloader.sh dev"
 
 info "Starting the service to apply changes and test..."
 lxc exec "$CONTAINER_NAME" -- sudo systemctl start lite-llm-adapter
@@ -149,7 +153,8 @@ fi
 
 info "--- Test Environment Setup Complete ---"
 info "The service is now running inside the LXC container."
-info "API Endpoint is forwarded to: http://localhost:8000"
-info "To access the container shell, run: lxc exec $CONTAINER_NAME -- /bin/bash"
-info "To stop the container, run: lxc stop $CONTAINER_NAME"
-info "To delete the container, run: lxc delete $CONTAINER_NAME"
+echo
+echo "API Endpoint is forwarded to: http://localhost:8000"
+echo "To access the container shell, run: lxc exec $CONTAINER_NAME -- /bin/bash"
+echo "To stop and delete the container, run: ./local-test-cleanup.sh"
+echo "To also delete the minimal image, run: ./local-test-cleanup.sh --image"

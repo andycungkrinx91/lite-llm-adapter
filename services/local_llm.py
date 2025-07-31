@@ -7,10 +7,10 @@ class LocalLLM:
     """
     A service class to interact with a local GGUF model using llama-cpp-python.
     """
-    _logger = logging.getLogger(__name__)
 
     def __init__(self, model_path: str, model_id: str, params: Dict[str, Any]):
         self.model_id = model_id
+        self.logger = logging.getLogger(f"{__name__}.{self.model_id}")
 
         # Define keys for the Llama constructor vs. generation to separate them
         constructor_keys = {"n_ctx", "n_batch", "verbose", "chat_format", "n_threads"}
@@ -39,6 +39,11 @@ class LocalLLM:
             # Update with any user-provided parameters, which will take precedence
             final_params.update(kwargs)
 
+            self.logger.debug(
+                "Creating chat completion with final parameters: %s",
+                {k: v for k, v in final_params.items() if k != 'messages'}
+            )
+
             # The Llama instance now handles chat templating automatically based on the
             # chat_format provided during initialization.
 
@@ -54,7 +59,7 @@ class LocalLLM:
             return self.model.create_chat_completion(messages=messages, **final_params)
 
         except Exception as e:
-            self._logger.error(
+            self.logger.error(
                 f"Error during chat completion for model '{self.model_id}': {e}",
                 exc_info=True
             )

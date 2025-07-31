@@ -1,19 +1,22 @@
 # Lite-LLM Adapter
 
-This project provides a high-performance, scalable, and modular adapter service designed to serve multiple local GGUF language models through an OpenAI-compatible API. It's built with FastAPI and `llama-cpp-python` for speed and efficiency, using Redis for robust concurrency management and stateful conversation handling.
+This project provides a high-performance, scalable, and production-ready adapter service designed to serve multiple local GGUF language models through an OpenAI-compatible API. It's built with FastAPI and `llama-cpp-python` for speed and efficiency, using Redis for robust concurrency management and stateful conversation handling.
 
 ## ✨ Key Features
 
 - **OpenAI-Compatible API**: Drop-in replacement for applications using the OpenAI API. Supports `/v1/chat/completions` and `/v1/models`.
 - **Multi-Model Support**: Dynamically load and serve any number of GGUF models based on simple JSON configurations.
 - **Environment-Specific Configurations**: Use `model_config_dev.json` for lightweight development and `model_config_prod.json` for a full suite of production models.
-- **High-Performance & Asynchronous**: Built on FastAPI and Uvicorn for non-blocking, asynchronous request handling.
+- **Optimized for CPU Performance**: Natively supports `llama.cpp` features like model quantization (e.g., `Q4_K_M`) and BLAS acceleration to deliver fast inference on standard CPU hardware.
+- **Asynchronous & Scalable**: Built on FastAPI and Uvicorn for non-blocking request handling. Uses a Redis-based queue to manage concurrent requests, ensuring smooth processing under high load and enabling horizontal scaling.
+- **Intelligent System Prompts**: Define default system prompts in your model configurations. The API intelligently injects them, while still allowing users to override them with their own prompts.
 - **Scalable Concurrency Management**: Uses a Redis-based queue to manage concurrent requests, ensuring smooth processing even under high load and enabling horizontal scaling.
 - **Stateful Conversations**: Offloads chat history to Redis, allowing for persistent, multi-turn conversations via a `session_id`.
 - **Streaming & Non-Streaming**: Natively supports both streaming (`text/event-stream`) and standard JSON responses.
 - **Secure API**: Protects endpoints with token-based authentication.
-- **Easy Deployment**: Includes a `docker-compose.yml` for quick containerized setup and a comprehensive `installer.sh` for production `systemd` deployments on Linux.
-- **Automated Local Testing**: A powerful `local-test.sh` script creates a clean, isolated LXC container to run a full end-to-end installation and test.
+- **Robust Deployment & Updates**: Includes a `docker-compose.yml` for quick containerized setup and an interactive `installer.sh` for production `systemd` deployments. A dedicated `update.sh` script handles safe, non-destructive updates.
+- **Automated Local Testing**: A powerful `local-test.sh` script creates a clean, isolated LXC container to run a full, automated end-to-end installation and test.
+- **Enhanced Error Handling**: Provides clear, actionable error messages for common issues like missing model files or misconfigurations.
 
 ---
 
@@ -55,8 +58,8 @@ The `models-downloader.sh` script can fetch models for either a `dev` or `prod` 
     ```bash
     cp .env.example .env
     # Generate a secure, random API key and update the .env file.
-    AUTH_TOKEN=$(head /dev/urandom | tr -dc A-Za-z0--9 | head -c 64)
-    sed -i "s/AUTH=.*/AUTH=$AUTH_TOKEN/" .env
+    AUTH_TOKEN=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 64)
+    sed -i "s/^AUTH=.*/AUTH=$AUTH_TOKEN/" .env
     echo "A new secret AUTH token has been generated in your .env file."
     ```
 
@@ -73,10 +76,10 @@ The `installer.sh` script automates the setup of a production-ready service on a
 
 1.  **Run the Installer**:
     ```bash
-    sudo ./installer.sh
+    sudo ./installer.sh # Run in interactive mode
     ```
     This script will:
-    - Install dependencies (`python3.12`, `redis-server`, etc.).
+    - Interactively prompt you for configuration values (user, directory, default model).
     - Create a dedicated system user (defaults to `app`).
     - Set up the application in a structured directory (e.g., `/home/app/site/lite-llm-adapter`).
     - Create a production `.env` file with a secure, random `AUTH` token.
@@ -94,9 +97,16 @@ The `installer.sh` script automates the setup of a production-ready service on a
     sudo journalctl -u lite-llm-adapter -f
     ```
 
-#### Updating the Service
+### 4. Updating the Service (Systemd Deployments)
 
-To update your `systemd` deployment to the latest version from the git repository, a simple `update.sh
+To update your `systemd` deployment to the latest version from the git repository, a simple `update.sh` script is provided. It will safely pull the latest code, update dependencies, and download any new models without deleting your existing ones.
+
+```bash
+# Run the update script with root privileges
+sudo ./update.sh
+```
+
+The script will interactively ask you which environment (`dev` or `prod`) you want to update to.
 
 ---
 
@@ -108,13 +118,13 @@ The application is configured using a `.env` file.
 
 | Variable                  | Description                                                              | Default          |
 | ------------------------- | ------------------------------------------------------------------------ | ---------------- |
-| `ENVIRONMENT`             | Set to `dev` or `prod` to load the corresponding model config.           | `dev`            |
+| `ENVIRONMENT`             | Set to `dev` or `prod` to load the corresponding model config.           | `dev` (in `.env.example`) |
 | `DEFAULT_MODEL_ID`        | The model to use if one isn't specified in the API request.              | `qwen3-0.6b`     |
 | `MODEL_BASE_PATH`         | The absolute path to the directory containing GGUF model files.          | `/app/models/gguf_models` |
 | `REDIS_URL`               | The connection string for the Redis instance.                            | `redis://localhost:6379` |
 | `CPU_THREADS`             | Number of CPU threads to use for model inference.                        | `4`              |
 | `AUTH`                    | The secret bearer token for API authentication.                          | (randomly generated) |
-| `MAX_CONCURRENT_REQUESTS` | The number of simultaneous requests the service can process. Others queue in Redis. | `3`              |
+| `MAX_CONCURRENT_REQUESTS` | The number of simultaneous requests the service can process. **Set to `1` for memory-constrained systems.** | `1` (in `.env.example`) |
 
 ### Model Configuration (`models/model_config_*.json`)
 
@@ -123,9 +133,10 @@ Models are defined in `models/model_config_dev.json` and `models/model_config_pr
 ```json
 {
   "id": "qwen3-0.6b", // Unique identifier for the model
-  "model_type": "local_gguf", // Type of model
-  "path": "Qwen3-0.6B-BF16.gguf", // Filename within MODEL_BASE_PATH
-  "chat_format": "qwen", // The chat template to use (e.g., chatml, llama-3)
+  "model_type": "local_gguf",
+  "path": "Qwen3-0.6B-Q4_K_M.gguf", // Filename within MODEL_BASE_PATH
+  "system_prompt": "You are a helpful AI assistant.", // Optional default system prompt
+  "chat_format": "chatml", // The chat template to use (e.g., chatml, llama-3)
   "params": {
     "n_ctx": 4096, // Llama.cpp constructor parameter: context size
     "n_batch": 1024, // Llama.cpp constructor parameter: batch size
@@ -161,6 +172,10 @@ curl http://localhost:8000/v1/chat/completions \
     "model": "qwen3-0.6b",
     "messages": [
       {"role": "user", "content": "Hello! What is FastAPI?"}
+      // You can also provide a system prompt here, which will override
+      // the default one from the model's configuration for this request.
+      // {"role": "system", "content": "You are a teacher."},
+      // {"role": "user", "content": "Hello! What is FastAPI?"}
     ]
   }'
 ```
