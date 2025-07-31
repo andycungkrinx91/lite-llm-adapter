@@ -13,7 +13,7 @@ class LocalLLM:
         self.logger = logging.getLogger(f"{__name__}.{self.model_id}")
 
         # Define keys for the Llama constructor vs. generation to separate them
-        constructor_keys = {"n_ctx", "n_batch", "verbose", "chat_format", "n_threads"}
+        constructor_keys = {"n_ctx", "n_batch", "verbose", "chat_format", "n_threads", "use_mlock"}
 
         # Separate llama.cpp constructor params from generation params
         llama_constructor_params = {k: v for k, v in params.items() if k in constructor_keys}
