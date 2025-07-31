@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 import redis.asyncio as redis
 
-from models.model_loader import get_model, MODEL_CONFIGS
+from models.model_loader import get_model, MODEL_CONFIGS, FAILED_MODELS
 from dependencies import get_app_config, AppConfig, verify_api_key, get_redis_client
 from schemas.openai_types import ChatCompletionRequest
 
@@ -43,13 +43,30 @@ async def create_chat_completion(
             found_model_id = available_id
             break
 
-    llm = get_model(found_model_id) if found_model_id else None
-    model_config = MODEL_CONFIGS.get(found_model_id) if found_model_id else None
-
-    if not llm or not model_config:
+    # Case 1: The requested model ID does not match any configuration.
+    if not found_model_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model '{model_id}' not found or is misconfigured. Available models: {list(MODEL_CONFIGS.keys())}",
+            detail=f"Model '{model_id}' not found. Available models: {list(MODEL_CONFIGS.keys())}",
+        )
+
+    # Case 2: The model is configured but failed to load (e.g., file missing, config error).
+    # This is a server-side issue, so a 500-level error is appropriate.
+    if found_model_id in FAILED_MODELS:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Model '{found_model_id}' is configured but failed to load. Reason: {FAILED_MODELS[found_model_id]}. Please check server logs and ensure the model file is correctly placed.",
+        )
+
+    llm = get_model(found_model_id)
+    model_config = MODEL_CONFIGS.get(found_model_id)
+
+    # Case 3: The model is configured and didn't fail, but is still not available.
+    # This indicates a logical error in the application startup.
+    if not llm:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Model '{found_model_id}' is configured but could not be retrieved. This indicates a server-side inconsistency. Please check the logs.",
         )
 
     # --- Session Management ---
@@ -66,6 +83,22 @@ async def create_chat_completion(
     # Combine historical messages with the new ones
     incoming_messages = [msg.model_dump() for msg in request.messages]
     messages_as_dicts = history + incoming_messages
+
+    # --- System Prompt Injection ---
+    # Intelligently inject the model's default system prompt if needed.
+    default_system_prompt = model_config.get("system_prompt")
+
+    # Check if the user has already provided a system prompt.
+    # The OpenAI standard is for the system message to be the first in the list.
+    user_provided_system_prompt = False
+    if messages_as_dicts and messages_as_dicts[0].get("role") == "system":
+        user_provided_system_prompt = True
+
+    # Inject the default prompt only if one is defined for the model AND
+    # the user has not supplied their own. This ensures user-provided prompts
+    # always take precedence.
+    if default_system_prompt and not user_provided_system_prompt:
+        messages_as_dicts.insert(0, {"role": "system", "content": default_system_prompt})
 
     # --- Parameter Extraction ---
     # Extract generation parameters from the request. The LocalLLM service will handle

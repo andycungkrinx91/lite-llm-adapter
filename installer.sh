@@ -39,6 +39,7 @@ if [ "$NON_INTERACTIVE" = true ]; then
     # These values are set to match the expectations of the local-test.sh script.
     APP_USER="llm_backend"
     APP_GROUP="llm_backend"
+    DEFAULT_MODEL_ID="qwen3-0.6b"
     APP_BASE_DIR="/home/app"
 else
     # --- Interactive Configuration ---
@@ -59,6 +60,14 @@ else
     DEFAULT_APP_BASE_DIR="/home/$APP_USER"
     read -p "Enter the base directory for the application [default: $DEFAULT_APP_BASE_DIR]: " APP_BASE_DIR
     APP_BASE_DIR=${APP_BASE_DIR:-$DEFAULT_APP_BASE_DIR}
+
+    # Prompt for the default model ID
+    read -p "Enter the default model ID to use [default: qwen3-0.6b]: " DEFAULT_MODEL_ID
+    DEFAULT_MODEL_ID=${DEFAULT_MODEL_ID:-qwen3-0.6b}
+fi
+
+if [[ -z "$APP_BASE_DIR" || "$APP_BASE_DIR" == "/" ]]; then
+    error "Application base directory cannot be empty or the root directory ('/'). Aborting for safety."
 fi
 
 # --- Derived Configuration (do not change) ---
@@ -99,36 +108,46 @@ mkdir -p "$LOG_DIR"
 
 # --- 3. Application Setup ---
 info "Copying application files to $APP_DIR..."
-rsync -a --exclude='models/gguf_models/*' --exclude='.git/' "$SCRIPT_DIR/" "$APP_DIR/"
+# We now include the .git directory so that the installation itself is a git repository,
+# which simplifies the update process.
+rsync -a --exclude='models/gguf_models/*' "$SCRIPT_DIR/" "$APP_DIR/"
 
 info "Creating Python virtual environment at $VENV_DIR..."
 python3.12 -m venv "$VENV_DIR"
 
 info "Installing Python dependencies with OpenBLAS acceleration for llama-cpp-python..."
 # The CMAKE_ARGS environment variable instructs pip to build llama-cpp-python from source
-# with BLAS support, which significantly improves performance on CPUs.
-# The --no-binary flag ensures it's built locally instead of using a pre-compiled wheel.
-CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" "$VENV_DIR/bin/pip" install --no-cache-dir --no-binary llama-cpp-python -r "$APP_DIR/requirements.txt"
+# with BLAS support, which significantly improves performance on CPUs. Pip will automatically
+# pick up llama-cpp-python from the requirements file and build it from source.
+CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" "$VENV_DIR/bin/pip" install --no-cache-dir -r "$APP_DIR/requirements.txt"
 
 # --- 4. Configuration (.env file) ---
-info "Creating production .env file..."
-cat > "$APP_DIR/.env" << EOF
-# --- Production Environment Configuration ---
+info "Configuring production .env file..."
+ENV_FILE="$APP_DIR/.env"
+
+# Preserve the existing AUTH token if the .env file already exists
+EXISTING_AUTH=""
+if [ -f "$ENV_FILE" ]; then
+    info "Existing .env file found. Preserving AUTH token."
+    EXISTING_AUTH=$(grep -oP '(?<=^AUTH=).*' "$ENV_FILE")
+fi
+
+# Generate a new token only if one doesn't already exist
+AUTH_TOKEN=${EXISTING_AUTH:-$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')}
+
+cat > "$ENV_FILE" << EOF
 ENVIRONMENT=prod
-DEFAULT_MODEL_ID=qwen3-0.6b
+DEFAULT_MODEL_ID=$DEFAULT_MODEL_ID
 MODEL_BASE_PATH=$MODEL_DIR
 REDIS_URL=redis://localhost:6379
-# Use half of the available CPU cores for inference to balance performance and system stability.
-# This prevents the service from consuming 100% CPU during requests.
-# The calculation ensures at least 1 thread is used.
-CPU_THREADS=$(( $(nproc) / 2 > 0 ? $(nproc) / 2 : 1 ))
-AUTH=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')
-MAX_CONCURRENT_REQUESTS=3
+CPU_THREADS=$(nproc)
+AUTH=$AUTH_TOKEN
+MAX_CONCURRENT_REQUESTS=1
 EOF
 
-info "A new secret AUTH token has been generated in $APP_DIR/.env"
+info "Ensured .env file is configured."
 warn "Please NOTE DOWN this AUTH token. You will need it to access the API."
-warn "AUTH Token: $(grep AUTH "$APP_DIR/.env" | cut -d '=' -f2)"
+warn "AUTH Token: $AUTH_TOKEN"
 
 # --- 5. Set Permissions ---
 info "Setting ownership and permissions..."

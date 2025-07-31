@@ -25,28 +25,39 @@ RUN pip install --no-cache-dir -r requirements.txt
 # It starts from a slim Python image for a smaller size. It must match the builder version.
 FROM python:3.12-slim
 
-WORKDIR /app
-
 # Install runtime dependencies for the compiled llama.cpp library.
 # - libgomp1 is the GNU OpenMP library, for multi-threaded CPU inference.
 # - libopenblas0 is the runtime library for OpenBLAS, for accelerated matrix math.
+# Also create a non-root user for security.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     libopenblas0 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && addgroup --system app \
+    && adduser --system --ingroup app app
+
+WORKDIR /app
 
 # Copy the pre-built, CPU-only wheels from the `cpu-builder` stage.
 COPY --from=cpu-builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=cpu-builder /usr/local/bin /usr/local/bin
 
-# Copy the rest of the application code
-COPY . .
+# Copy only the necessary application source code.
+# This avoids including unnecessary files (like scripts, READMEs, etc.) in the final image.
+COPY main.py .
+COPY dependencies.py .
+COPY routers/ ./routers/
+COPY services/ ./services/
+# Copy only the necessary model loader script and JSON configuration files.
+# The `gguf_models` directory itself is NOT copied; it is handled entirely by the
+# volume mount defined in `docker-compose.yml`.
+COPY models/*.py models/
+COPY models/*.json models/
+COPY schemas/ ./schemas/
 
-# --- Diagnostic Step ---
-# List the contents of the /app directory recursively to verify that all
-# source files, including the 'schemas' directory, have been copied correctly.
-# This runs during the build process and will appear in the build logs.
-RUN echo "--- Verifying file structure in /app ---" && ls -R
+# Set ownership of the app directory to the non-root user and switch to that user
+RUN chown -R app:app /app
+USER app
 
 # Expose the port the app runs on
 EXPOSE 8000

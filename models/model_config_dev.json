@@ -2,21 +2,22 @@
   {
     "id": "qwen3-0.6b",
     "model_type": "local_gguf",
-    "path": "Qwen3-0.6B-BF16.gguf",
-    "chat_format": "qwen",
+    "path": "Qwen3-0.6B-Q4_K_M.gguf",
+    "chat_format": "chatml",
     "params": {
       "n_ctx": 4096,
-      "n_batch": 1024
+      "n_batch": 512,
+      "verbose": true
     }
   },
   {
     "id": "qwen2.5-coder-0.5b",
     "model_type": "local_gguf",
-    "path": "Qwen2.5-Coder-0.5B-Instruct-F16.gguf",
-    "chat_format": "qwen",
+    "path": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
+    "chat_format": "chatml",
     "params": {
       "n_ctx": 4096,
-      "n_batch": 1024
+      "n_batch": 512
     }
   }
 ]

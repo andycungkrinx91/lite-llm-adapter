@@ -9,3 +9,6 @@ __pycache__/
 .venv
 .git
 .github
+
+# Ignore model data, as it's handled by a volume mount
+models/gguf_models/

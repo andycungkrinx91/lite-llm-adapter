@@ -2,295 +2,148 @@
   {
     "id": "qwen3-0.6b",
     "model_type": "local_gguf",
-    "path": "Qwen3-0.6B-BF16.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Qwen3-0.6B-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   },
   {
     "id": "qwen2.5-coder-0.5b",
     "model_type": "local_gguf",
-    "path": "Qwen2.5-Coder-0.5B-Instruct-F16.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Provide clear, concise, and correct code solutions.",
+    "chat_format": "chatml"
   },
   {
     "id": "gemma-3-1b",
     "model_type": "local_gguf",
-    "path": "gemma-3-1b-it-Q5_K_M.gguf",
-    "chat_format": "gemma-instruct",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "gemma-3-1b-it-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "gemma-instruct"
   },
   {
     "id": "llama3.2-1b",
     "model_type": "local_gguf",
-    "path": "Llama-3.2-1B-Instruct-Q5_K_S.gguf",
-    "chat_format": "llama-3",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "llama-3"
   },
   {
     "id": "gemma-3-12b",
     "model_type": "local_gguf",
-    "path": "gemma-3-12b-it-Q4_0.gguf",
-    "chat_format": "gemma-instruct",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "gemma-3-12b-it-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "gemma-instruct"
   },
   {
     "id": "qwen3-8b",
     "model_type": "local_gguf",
-    "path": "Qwen3-8B-UD-Q4_K_XL.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Qwen3-8B-UD-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   },
   {
     "id": "qwen3-14b",
     "model_type": "local_gguf",
-    "path": "Qwen3-14B-UD-Q4_K_XL.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Qwen3-14B-UD-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   },
   {
     "id": "deepseek-r1-qwen3-8b",
     "model_type": "local_gguf",
-    "path": "DeepSeek-R1-0528-Qwen3-8B-Q5_K_S.gguf",
-    "chat_format": "deepseek-chat",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Provide clear, concise, and correct code solutions.",
+    "chat_format": "deepseek-chat"
   },
   {
     "id": "deepseek-r1-llama-8b",
     "model_type": "local_gguf",
-    "path": "DeepSeek-R1-Distill-Llama-8B-UD-Q4_K_XL.gguf",
-    "chat_format": "deepseek-chat",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "DeepSeek-R1-Distill-Llama-8B-UD-Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Provide clear, concise, and correct code solutions.",
+    "chat_format": "deepseek-chat"
   },
   {
     "id": "phi4-mini",
     "model_type": "local_gguf",
-    "path": "Phi-4-mini-instruct-Q6_K.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Phi-4-mini-instruct-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   },
   {
     "id": "phi4-mini-reasoning",
     "model_type": "local_gguf",
-    "path": "Phi-4-mini-reasoning-UD-Q5_K_XL.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Phi-4-mini-reasoning-UD-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant specialized in reasoning and logic problems.",
+    "chat_format": "chatml"
   },
   {
     "id": "llama3.2-3b",
     "model_type": "local_gguf",
-    "path": "Llama-3.2-3B-Instruct-UD-Q8_K_XL.gguf",
-    "chat_format": "llama-3",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Llama-3.2-3B-Instruct-UD-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "llama-3"
   },
   {
     "id": "llama3.1-8b",
     "model_type": "local_gguf",
-    "path": "Llama-3.1-8B-Instruct-UD-Q4_K_XL.gguf",
-    "chat_format": "llama-3",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Llama-3.1-8B-Instruct-UD-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "llama-3"
   },
   {
     "id": "openchat3.5",
     "model_type": "local_gguf",
-    "path": "openchat_3.5.Q5_K_S.gguf",
-    "chat_format": "openchat",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "openchat_3.5.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "openchat"
   },
   {
     "id": "mistral-7b",
     "model_type": "local_gguf",
     "path": "mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-    "chat_format": "mistral-instruct",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "mistral-instruct"
   },
   {
     "id": "mistral-7b-claude",
     "model_type": "local_gguf",
-    "path": "mistral-7b-claude-chat.Q5_K_S.gguf",
-    "chat_format": "mistral-instruct",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "mistral-7b-claude-chat.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "mistral-instruct"
   },
   {
     "id": "gpt4all-falcon",
     "model_type": "local_gguf",
-    "path": "gpt4all-falcon-Q5_K_S.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "gpt4all-falcon-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   },
   {
     "id": "airoboros-llama2-gpt4.1-7b",
     "model_type": "local_gguf",
-    "path": "airoboros-l2-7b-gpt4-1.4.1.Q5_K_S.gguf",
-    "chat_format": "llama-2",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "airoboros-l2-7b-gpt4-1.4.1.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "llama-2"
   },
   {
     "id": "airoboros-llama2-gpt4.2-7b",
     "model_type": "local_gguf",
-    "path": "airoboros-l2-7B-gpt4-2.0.Q5_K_S.gguf",
-    "chat_format": "llama-2",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "airoboros-l2-7B-gpt4-2.0.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "llama-2"
   },
   {
     "id": "kimi-k2",
     "model_type": "local_gguf",
-    "path": "imatrix-mainline-pr9400-plus-kimi-k2-942c55cd5-Kimi-K2-Instruct-Q8_0.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "imatrix-mainline-pr9400-plus-kimi-k2-942c55cd5-Kimi-K2-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   },
   {
     "id": "kimiko-claude",
     "model_type": "local_gguf",
-    "path": "Kimiko-Claude-FP16.Q5_K_S.gguf",
-    "chat_format": "chatml",
-    "params": {
-      "n_ctx": 4096,
-      "n_batch": 512,
-      "temperature": 0.7,
-      "top_p": 0.95,
-      "max_tokens": 2048,
-      "top_k": 40
-    }
+    "path": "Kimiko-Claude-FP16.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful AI assistant.",
+    "chat_format": "chatml"
   }
 ]

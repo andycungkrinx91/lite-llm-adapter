@@ -14,8 +14,12 @@ services:
       - "8000:8000"
     volumes:
       # Mount the local models directory into the container
-      # This avoids rebuilding the image every time you add a model
+      # This avoids including large model files in the image.
       - ./models/gguf_models:/app/models/gguf_models
+      # For development, mount the config files to allow changes without rebuilding.
+      - ./models/model_config_dev.json:/app/models/model_config_dev.json:ro
+      # - ./models/model_config_prod.json:/app/models/model_config_prod.json:ro
+      - ./models/model_config_defaults.json:/app/models/model_config_defaults.json:ro
     # For serving LLMs, it's best to use a single worker to avoid duplicating models in memory.
     # Concurrency is handled inside the app with asyncio and the concurrency_manager.
     # We use Gunicorn as a process manager for Uvicorn workers for production-grade stability.
@@ -24,16 +28,9 @@ services:
     # --timeout 120: Increase the worker timeout to handle long-running inference tasks.
     # --bind 0.0.0.0:8000: Bind to the correct host and port.
     command: gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 120 --pythonpath /app main:app --bind 0.0.0.0:8000
-    # To enable GPU access, uncomment the following section
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   redis:
@@ -41,4 +38,9 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
     restart: unless-stopped

@@ -9,6 +9,8 @@ from dependencies import AppConfig
 MODEL_CONFIGS: Dict[str, Any] = {}
 # LLM_INSTANCES stores the actual, loaded LocalLLM objects.
 LLM_INSTANCES: Dict[str, LocalLLM] = {}
+# FAILED_MODELS stores models that were configured but failed to load, with the reason.
+FAILED_MODELS: Dict[str, str] = {}
 
 def load_models(app_config: AppConfig):
     """
@@ -17,11 +19,23 @@ def load_models(app_config: AppConfig):
     """
     env = app_config.ENVIRONMENT
     config_filename = f"model_config_{env}.json"
+    defaults_filename = "model_config_defaults.json"
     config_path = os.path.join(os.path.dirname(__file__), config_filename)
+    defaults_path = os.path.join(os.path.dirname(__file__), defaults_filename)
     
     print(f"Running in '{env}' mode. Loading models from '{config_filename}'...")
 
-    try: # Read the main config file
+    # Load default parameters first
+    default_params = {}
+    try:
+        with open(defaults_path, 'r') as f:
+            default_params = json.load(f).get("default_params", {})
+    except FileNotFoundError:
+        print(f"Info: {defaults_filename} not found. No default params will be applied.")
+    except json.JSONDecodeError:
+        print(f"Warning: Could not decode {defaults_filename}. Check for syntax errors.")
+
+    try:  # Read the main environment-specific config file
         with open(config_path, 'r') as f:
             model_configs = json.load(f)
     except FileNotFoundError:
@@ -44,13 +58,25 @@ def load_models(app_config: AppConfig):
         
         print(f"Loading model '{model_id}'...")
         if model_type == 'local_gguf' or model_type == 'local':
-            relative_path = model_config.get("path")
-            model_path = os.path.join(app_config.MODEL_BASE_PATH, relative_path)
-            if not model_path or not os.path.exists(model_path):
-                print(f"Warning: Model path '{model_path}' for '{model_id}' not found. Skipping.")
+            relative_path = model_config.get("path") # Get the filename from config
+            if not relative_path:
+                reason = "Configuration is missing the 'path' attribute for the model file."
+                print(f"Warning: {reason} for model '{model_id}'. Skipping.")
+                FAILED_MODELS[model_id] = reason
+                continue
+
+            model_path = os.path.join(app_config.MODEL_BASE_PATH, relative_path) # Construct full path
+            if not os.path.exists(model_path):
+                reason = f"Model file not found at path: {model_path}"
+                print(f"Warning: {reason} for model '{model_id}'. Skipping.")
+                FAILED_MODELS[model_id] = reason
                 continue
             
-            params = model_config.get("params", {})
+            # Start with default params, then merge model-specific params
+            params = default_params.copy()
+            model_specific_params = model_config.get("params", {})
+            params.update(model_specific_params)
+
             # Only set chat_format if it's explicitly defined in the config.
             # Otherwise, let llama-cpp-python auto-detect it from the GGUF metadata.
             if "chat_format" in model_config:
@@ -66,7 +92,9 @@ def load_models(app_config: AppConfig):
                 )
                 print(f"Successfully loaded local model: {model_id}")
             except Exception as e:
-                print(f"Error loading local model '{model_id}': {e}")
+                reason = f"Error during initialization: {e}"
+                print(f"Error loading local model '{model_id}': {reason}")
+                FAILED_MODELS[model_id] = reason
 
         # Add logic for other model types (OpenAI, Google) here if needed
         # elif model_type == 'openai':

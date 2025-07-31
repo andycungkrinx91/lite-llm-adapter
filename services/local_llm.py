@@ -13,12 +13,12 @@ class LocalLLM:
         self.model_id = model_id
 
         # Define keys for the Llama constructor vs. generation to separate them
-        constructor_keys = {"n_ctx", "n_batch", "n_gpu_layers", "verbose", "chat_format", "n_threads"}
+        constructor_keys = {"n_ctx", "n_batch", "verbose", "chat_format", "n_threads"}
 
         # Separate llama.cpp constructor params from generation params
         llama_constructor_params = {k: v for k, v in params.items() if k in constructor_keys}
-        llama_constructor_params.setdefault("verbose", True) # Ensure verbose is set
-        llama_constructor_params.setdefault("n_gpu_layers", 0) # Explicitly default to CPU
+        # Default to False for cleaner production logs, but allow override from config.
+        llama_constructor_params.setdefault("verbose", False)
 
         # The rest are assumed to be default generation params
         self.generation_params = {
