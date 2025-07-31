@@ -1,274 +1,240 @@
-# Lite-LLM Adapter
 
-This project provides a high-performance, scalable, and production-ready adapter service designed to serve multiple local GGUF language models through an OpenAI-compatible API. It's built with FastAPI and `llama-cpp-python` for speed and efficiency, using Redis for robust concurrency management and stateful conversation handling.
-
-## ✨ Key Features
-
-- **OpenAI-Compatible API**: Drop-in replacement for applications using the OpenAI API. Supports `/v1/chat/completions` and `/v1/models`.
-- **Multi-Model Support**: Dynamically load and serve any number of GGUF models based on simple JSON configurations.
-- **Environment-Specific Configurations**: Use `model_config_dev.json` for lightweight development and `model_config_prod.json` for a full suite of production models.
-- **Optimized for CPU Performance**: Natively supports `llama.cpp` features like model quantization (e.g., `Q4_K_M`) and BLAS acceleration to deliver fast inference on standard CPU hardware.
-- **Asynchronous & Scalable**: Built on FastAPI and Uvicorn for non-blocking request handling. Uses a Redis-based queue to manage concurrent requests, ensuring smooth processing under high load and enabling horizontal scaling.
-- **Intelligent System Prompts**: Define default system prompts in your model configurations. The API intelligently injects them, while still allowing users to override them with their own prompts.
-- **Scalable Concurrency Management**: Uses a Redis-based queue to manage concurrent requests, ensuring smooth processing even under high load and enabling horizontal scaling.
-- **Stateful Conversations**: Offloads chat history to Redis, allowing for persistent, multi-turn conversations via a `session_id`.
-- **Streaming & Non-Streaming**: Natively supports both streaming (`text/event-stream`) and standard JSON responses.
-- **Secure API**: Protects endpoints with token-based authentication (bearer token).
-- **Robust Deployment & Updates**: Includes a `docker-compose.yml` for quick containerized setup and an interactive `installer.sh` for production `systemd` deployments. A dedicated `update.sh` script handles safe, non-destructive updates.
-- **Automated Local Testing**: A powerful `local-test.sh` script creates a clean, isolated LXC container to run a full, automated end-to-end installation and test.
-- **Enhanced Error Handling**: Provides clear, actionable error messages for common issues like missing model files or misconfigurations.
+## 🎯 Lite-LLM Adapter
+> Serve multiple GGUF models via a production-ready, OpenAI-compatible API. Blazing-fast, stateful, and developer-friendly.
 
 ---
 
-## 🚀 Getting Started
+### ✨ **Features at a Glance**
+| 🚀 Feature                        | 📌 Description |
+|----------------------------------|----------------|
+| **Multi-Model Serving**        | Dynamically load and serve multiple GGUF models from a simple JSON configuration. |
+| **OpenAI-Compatible API**      | Drop-in replacement for OpenAI with `/v1/chat/completions` & `/v1/models` endpoints. |
+| **Optimized CPU Inference**    | Built with `llama.cpp` and OpenBLAS for high-performance, multi-threaded CPU inference. |
+| **Stateful, Streaming Chat**   | Supports persistent conversations using a `session_id` and `text/event-stream` for real-time responses. |
+| **Concurrency Management**     | A Redis-based queue ensures smooth processing and prevents server overloads. |
+| **Secure & Production-Ready**  | Protects endpoints with bearer token authentication. Deploy with Docker or as a native `systemd` service. |
+| **Automated Testing**          | Includes a full end-to-end testing script using LXC for clean-room validation. |
+| **Developer-Friendly**         | Features detailed system prompts, robust error handling, and clear documentation. |
 
-You can deploy the service using either Docker (recommended for a quick start) or a `systemd` service on a dedicated Linux server.
+---
 
-### Prerequisites
+### 📂 Project Structure
+```
+lite-llm-adapter/
+├── .env.example            # Environment variable template
+├── Dockerfile              # Defines the application's container image
+├── docker-compose.yml      # Defines services for Docker deployment
+├── installer.sh            # Installer for native systemd deployment
+├── main.py                 # FastAPI application entrypoint
+├── models-downloader.sh    # Script to download GGUF model files
+├── requirements.txt        # Python dependencies
+├── update.sh               # Script to update a systemd deployment
+├── dependencies.py         # FastAPI dependency injection setup
+├── models/
+│   ├── model_config_dev.json     # Model definitions for 'dev' env
+│   ├── model_config_prod.json    # Model definitions for 'prod' env
+│   ├── model_config_defaults.json# Default parameters for all models
+│   ├── model_loader.py       # Logic for loading models on-demand
+│   └── gguf_models/          # (Downloaded .gguf files go here)
+├── routers/
+│   └── chat.py               # API routes for /v1/chat and /v1/models
+├── schemas/
+│   └── openai_types.py       # Pydantic schemas for OpenAI compatibility
+└── services/
+    ├── concurrency_manager.py# Redis-based queue for request concurrency
+    └── local_llm.py          # Wrapper for llama-cpp-python interaction
+```
+---
 
+## 🚀 **Quick Start**
+
+### 🛠️ Prerequisites
 - Git
-- Docker & Docker Compose (for Docker deployment)
-- LXD (for running the automated local test script)
+- Docker + Docker Compose
+- LXD (for local testing with `local-test.sh`)
 
-### 1. Clone the Repository
+---
 
+### 🧬 **1. Clone the Repo**
 ```bash
 git clone https://github.com/andycungkrinx91/lite-llm-adapter.git
 cd lite-llm-adapter
 ```
 
-### 2. Download Models
+---
 
-The `models-downloader.sh` script can fetch models for either a `dev` or `prod` environment.
-
+### 🤖 **2. Download LLM Models**
 ```bash
-# For development (downloads two small models)
+# For dev (small models)
 ./models-downloader.sh
 
-# For production (downloads all configured models)
+# For production models
 ./models-downloader.sh prod
 ```
 
-### 3. Choose Your Deployment Method
+---
 
-#### Docker Deployment (Recommended)
-
-1.  **Create Environment File**: Copy the example and generate a secret key.
-    > **Note**: The `docker-compose.yml` file is configured to automatically connect to the Redis container using its service name (`redis`), so you don't need to change `REDIS_URL` in the `.env` file for Docker.
-    ```bash
-    cp .env.example .env
-    # Generate a secure, random API key and update the .env file.
-    AUTH_TOKEN=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 64)
-    sed -i "s/^AUTH=.*/AUTH=$AUTH_TOKEN/" .env
-    echo "A new secret AUTH token has been generated in your .env file."
-    ```
-
-2.  **Launch Services**: Use Docker Compose to build and run the backend and Redis containers.
-    ```bash
-    docker-compose up --build
-    ```
-
-The API will be available at `http://localhost:8000`.
-
-#### Systemd Deployment (Production on Linux)
-
-The `installer.sh` script automates the setup of a production-ready service on a Debian-based system (like Ubuntu 24.04).
-
-1.  **Run the Installer**:
-    ```bash
-    sudo ./installer.sh # Run in interactive mode
-    ```
-    This script will:
-    - Interactively prompt you for configuration values (user, directory, default model).
-    - Create a dedicated system user (defaults to `app`).
-    - Set up the application in a structured directory (e.g., `/home/app/site/lite-llm-adapter`).
-    - Create a production `.env` file with a secure, random `AUTH` token.
-    - Configure and enable a `systemd` service.
-
-2.  **Start and Manage the Service**:
-    ```bash
-    # Start the service
-    sudo systemctl start lite-llm-adapter
-
-    # Check its status
-    sudo systemctl status lite-llm-adapter
-
-    # View live logs
-    sudo journalctl -u lite-llm-adapter -f
-    ```
-
-### 4. Updating the Service (Systemd Deployments)
-
-To update your `systemd` deployment to the latest version from the git repository, a simple `update.sh` script is provided. It will safely pull the latest code, update dependencies, and download any new models without deleting your existing ones.
-
+### 🐳 **3. Deploy via Docker (Recommended)**
+#### 🧪 Prepare `.env`
 ```bash
-# Run the update script with root privileges
-sudo ./update.sh
+cp .env.example .env
+AUTH_TOKEN=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 64)
+sed -i "s/^AUTH=.*/AUTH=$AUTH_TOKEN/" .env
 ```
 
-The script will interactively ask you which environment (`dev` or `prod`) you want to update to.
+#### 🛸 Launch the App
+```bash
+docker-compose up --build
+```
+> 🔗 Access at: [http://localhost:8000](http://localhost:8000)
 
 ---
 
-## ⚙️ Configuration
+### 🧑‍💻 **4. Native Deployment (Systemd)**
+```bash
+sudo ./installer.sh
+```
 
-### Environment Variables (`.env`)
+Then manage it like this:
+```bash
+sudo systemctl start lite-llm-adapter
+sudo journalctl -u lite-llm-adapter -f
+```
 
-The application is configured using a `.env` file.
+---
 
-| Variable                  | Description                                                              | Default          |
-| ------------------------- | ------------------------------------------------------------------------ | ---------------- |
-| `ENVIRONMENT`             | Set to `dev` or `prod` to load the corresponding model config.           | `dev` (in `.env.example`) |
-| `DEFAULT_MODEL_ID`        | The model to use if one isn't specified in the API request.              | `qwen3-0.6b`     |
-| `MODEL_BASE_PATH`         | The absolute path to the directory containing GGUF model files.          | `/app/models/gguf_models` |
-| `REDIS_URL`               | The connection string for the Redis instance.                            | `redis://localhost:6379` |
-| `CPU_THREADS`             | Number of CPU threads to use for model inference.                        | `4`              |
-| `AUTH`                    | The secret bearer token for API authentication.                          | (randomly generated) |
-| `MAX_CONCURRENT_REQUESTS` | The number of simultaneous requests the service can process. **Set to `1` for memory-constrained systems.** | `1` (in `.env.example`) |
+## 🧾 **Environment Configuration**
 
-### Model Configuration (`models/model_config_*.json`)
+| Key                     | Purpose | Default |
+|------------------------|---------|---------|
+| `ENVIRONMENT`          | `dev` or `prod` for model config | `dev` |
+| `DEFAULT_MODEL_ID`     | Default fallback model ID | `qwen3-0.6b` |
+| `MODEL_BASE_PATH`      | Directory for GGUF files | `/app/models/gguf_models` |
+| `REDIS_URL`            | Redis connection URI | `redis://localhost:6379` |
+| `CPU_THREADS`          | Inference threads for `llama.cpp` | `4` |
+| `OPENBLAS_NUM_THREADS` | **Crucial for CPU control.** Must match `CPU_THREADS`. | `4` |
+| `AUTH`                 | Bearer token for auth | random |
+| `MAX_CONCURRENT_REQUESTS` | Request concurrency limit | `1` |
 
-Models are defined in `models/model_config_dev.json` and `models/model_config_prod.json`. Each model entry has the following structure:
+---
+
+## 🧠 **Model JSON Example**
 
 ```json
 {
-  "id": "qwen3-0.6b", // Unique identifier for the model
+  "id": "qwen3-0.6b",
   "model_type": "local_gguf",
-  "path": "Qwen3-0.6B-Q4_K_M.gguf", // Filename within MODEL_BASE_PATH
-  "system_prompt": "You are a helpful AI assistant.", // Optional default system prompt
-  "chat_format": "chatml", // The chat template to use (e.g., chatml, llama-3)
+  "path": "Qwen3-0.6B-Q4_K_M.gguf",
+  "system_prompt": "You are a helpful AI assistant.",
+  "chat_format": "chatml",
   "params": {
-    "n_ctx": 4096, // Llama.cpp constructor parameter: context size
-    "n_batch": 1024, // Llama.cpp constructor parameter: batch size
-    "temperature": 0.7, // Default generation parameter
-    "max_tokens": 2048 // Default generation parameter
+    "n_ctx": 4096,
+    "n_batch": 1024,
+    "temperature": 0.7,
+    "max_tokens": 2048
   }
 }
 ```
 
 ---
 
-## 🔌 API Usage
+## 💡 **Model Recommendations**
 
-All requests must include the `Authorization` header with the bearer token from your `.env` file.
+| Use Case                       | Recommended Models                                                              |
+|--------------------------------|---------------------------------------------------------------------------------|
+| **General Chat & Q&A**      | `qwen3-4b-nyx-v1`, `llama3.2-3b`, `phi4-mini`, `smolvlm2-2.2b-instruct`             |
+| **Expert Coding**           | `blitzar-coder-4b`, `tiny-qwen3-coder-4b`, `qwen2.5-coder-3b`, `deepseek-coder-1.3b` |
+| **Logical Reasoning**       | `qwen3-deepseek-reasoning`, `gemma-3-4b-ko-reasoning`, `phi4-mini-reasoning`      |
+| **Document Writing**        | `gemma-3-4b-doc-writer`                                                         |
+| **Specialized Tasks**       | `qwen2.5-vl-diagram2sql` (Diagrams to SQL), `smolvlm2-500m-video` (Video Analysis) |
+| **Fast & Lightweight**       | `qwen3-0.6b`, `qwen2.5-coder-0.5b`, `llama3.2-1b`, `gemma-3-1b`                    |
 
-### List Available Models
+> **Note**: Larger models (e.g., 4B) are generally more capable but slower and require more resources than smaller models (e.g., <3B).
+
+
+## 🔌 API Usage Examples
+
+First, set your auth token as an environment variable for convenience:
+```bash
+export API_TOKEN="your-secret-token-from-.env-file"
+```
+
+### 1. List Available Models
 
 ```bash
 curl http://localhost:8000/v1/models \
-  -H "Authorization: Bearer your-secret-token"
+  -H "Authorization: Bearer $API_TOKEN"
 ```
 
-### Create a Chat Completion (Non-Streaming)
+### 2. Start a New Chat (Non-Streaming)
 
-This request starts a new conversation. The server generates a unique `session_id` and returns it in the response, allowing you to continue the chat later.
-
-**Request:**
-```bash
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-secret-token" \
-  -d '{
-    "model": "qwen3-0.6b",
-    "messages": [
-      {"role": "user", "content": "Hello! What is FastAPI?"}
-      // You can also provide a system prompt here, which will override
-      // the default one from the model's configuration for this request.
-      // {"role": "system", "content": "You are a teacher."},
-      // {"role": "user", "content": "Hello! What is FastAPI?"}
-    ]
-  }'
-```
-
-### Continue a Conversation
-
-Provide the `session_id` from the previous response to continue the conversation. The backend will automatically retrieve the chat history from Redis.
+This will return a complete JSON object with the response and a `session_id` for continuing the conversation.
 
 ```bash
 curl http://localhost:8000/v1/chat/completions \
+  -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-secret-token" \
   -d '{
     "model": "qwen3-0.6b",
-    "session_id": "the-session-id-from-previous-response",
-    "messages": [
-      {"role": "user", "content": "How does it compare to Flask?"}
-    ]
+    "messages": [{"role": "user", "content": "What is the capital of France?"}]
   }'
 ```
 
-### Create a Chat Completion (Streaming)
+### 3. Continue a Chat Session (Streaming)
 
-Set `"stream": true` to receive a `text/event-stream` response. The first chunk will contain the `session_id`.
+Use the `session_id` from the previous response and set `"stream": true`. The response will be a `text/event-stream`.
 
 ```bash
 curl http://localhost:8000/v1/chat/completions \
+  -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-secret-token" \
   -d '{
     "model": "qwen3-0.6b",
-    "messages": [
-      {"role": "user", "content": "Write a short poem about code."}
-    ],
-    "stream": true
+    "session_id": "paste-the-session-id-from-previous-response-here",
+    "stream": true,
+    "messages": [{"role": "user", "content": "And what is its population?"}]
   }'
+```
+
+### 4. Override Generation Parameters
+
+You can override any default generation parameter, such as `temperature`.
+
+```json
+{
+  "model": "qwen3-0.6b",
+  "temperature": 0.2,
+  "messages": [{"role": "user", "content": "Tell me a short, factual story."}]
+}
 ```
 
 ---
 
-## 🩺 Troubleshooting
+## 🛠️ **Troubleshooting**
 
-If you encounter errors like "An error occurred during model generation," your first step should be to check the application logs. The logs contain detailed tracebacks that are essential for debugging.
+| ❗ Problem                           | 💡 Solution |
+|------------------------------------|-------------|
+| **High CPU Usage** (100%)          | Ensure `CPU_THREADS` and `OPENBLAS_NUM_THREADS` are set to a low number (e.g., 4) in your `.env` file. |
+| **Slow Performance**               | Reduce `n_batch` / `n_ctx` in model configs, set `MAX_CONCURRENT_REQUESTS=1`. |
+| **Redis Errors** / History Not Stored | Check `REDIS_URL` in `.env` is correct for your environment (Docker vs. native). |
 
-#### Docker Deployment
-
-To view the logs for the backend service:
-```bash
-docker-compose logs backend
-```
-
-#### Systemd Deployment
-
-To view the live logs for the systemd service:
-```bash
-sudo journalctl -u lite-llm-adapter -f
-```
+> 🧪 Docker Logs: `docker-compose logs backend`  
+> 🧾 Systemd Logs: `sudo journalctl -u lite-llm-adapter -f`
 
 ---
 
-## 🔬 Development & Testing
-
-For a fully automated, clean-room test of the entire installation process, use the `local-test.sh` script. This script spins up a fresh LXC container (think of it as a super-fast, lightweight virtual machine—cheers to all the infra folks who make this magic possible!) to ensure the installation is perfect from scratch.
-
-**Prerequisites**: LXD must be installed (`sudo snap install lxd && sudo lxd init`).
-
+## 🧪 **Run Local Test (LXC)**
 ```bash
 ./local-test.sh
 ```
-
-This script will:
-1.  Create a minimal Ubuntu 24.04 image on the first run to speed up subsequent tests.
-2.  Launch a clean LXC container.
-3.  Mount the project directory into the container.
-4.  Run `installer.sh` to set up the entire application and `systemd` service.
-5.  Run `models-downloader.sh dev` to fetch development models.
-6.  Start the service and run a health check.
-
-The API will be forwarded to `http://localhost:8000` on your host machine.
+This will spin up a full containerized environment and simulate an end-to-end test (LXD required).
 
 ---
 
-## 🛠️ Technology Stack
+## 🛠️ **Tech Stack**
+- � **GGUF** - Local model format
+- ⚙️ **Gunicorn** - Production process manager
 
-- **Backend Framework**: FastAPI
-- **LLM Inference**: llama-cpp-python
-- **Data Caching & Queuing**: Redis
-- **Process Manager**: Gunicorn & Uvicorn
-- **Containerization**: Docker & Docker Compose
-- **Test Environment**: LXD
 
----
-
-## 📜 Authored
-
-Copyright (c) 2025 Andy Setiyawan
+## ©️ Author
+Made with ☕ by **Andy Setiyawan**, 2025.

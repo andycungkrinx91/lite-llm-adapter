@@ -15,8 +15,9 @@ LLM_INSTANCES: Dict[str, LocalLLM] = {}
 FAILED_MODELS: Dict[str, str] = {}
 # MODEL_LOCKS prevents race conditions when two requests for the same new model arrive simultaneously.
 MODEL_LOCKS: Dict[str, asyncio.Lock] = {}
-# DEFAULT_PARAMS stores the default generation parameters loaded from JSON.
-DEFAULT_PARAMS: Dict[str, Any] = {}
+# Store default constructor and generation parameters separately for clarity.
+DEFAULT_CONSTRUCTOR_PARAMS: Dict[str, Any] = {}
+DEFAULT_GENERATION_PARAMS: Dict[str, Any] = {}
 
 def load_models(app_config: AppConfig):
     """
@@ -32,10 +33,12 @@ def load_models(app_config: AppConfig):
     print(f"Running in '{env}' mode. Loading models from '{config_filename}'...")
 
     # Load default parameters first
-    global DEFAULT_PARAMS
+    global DEFAULT_CONSTRUCTOR_PARAMS, DEFAULT_GENERATION_PARAMS
     try:
         with open(defaults_path, 'r') as f:
-            DEFAULT_PARAMS = json.load(f).get("default_params", {})
+            defaults_data = json.load(f)
+            DEFAULT_CONSTRUCTOR_PARAMS = defaults_data.get("default_constructor_params", {})
+            DEFAULT_GENERATION_PARAMS = defaults_data.get("default_generation_params", {})
     except FileNotFoundError:
         print(f"Info: {defaults_filename} not found. No default params will be applied.")
     except json.JSONDecodeError:
@@ -95,8 +98,10 @@ async def get_model(model_id: str, app_config: AppConfig) -> Optional[Any]:
         model_config = MODEL_CONFIGS.get(model_id)
         model_path = os.path.join(app_config.MODEL_BASE_PATH, model_config["path"])
 
-        # Load default params and merge model-specific ones
-        params = DEFAULT_PARAMS.copy()
+        # Start with global defaults, then merge model-specific params.
+        # This ensures a clear hierarchy of configuration.
+        params = DEFAULT_CONSTRUCTOR_PARAMS.copy()
+        params.update(DEFAULT_GENERATION_PARAMS)
         params.update(model_config.get("params", {}))
         if "chat_format" in model_config:
             params["chat_format"] = model_config["chat_format"]

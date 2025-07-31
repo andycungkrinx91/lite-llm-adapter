@@ -3,10 +3,9 @@
     "id": "qwen3-0.6b",
     "model_type": "local_gguf",
     "path": "Qwen3-0.6B-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
     "chat_format": "chatml",
     "params": {
-      "n_ctx": 4096,
       "n_batch": 512,
       "verbose": true
     }
@@ -15,10 +14,9 @@
     "id": "qwen2.5-coder-0.5b",
     "model_type": "local_gguf",
     "path": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
-    "system_prompt": "You are an expert coding assistant.",
+    "system_prompt": "You are an expert coding assistant. Your primary goal is to provide accurate, efficient, and secure code. Always explain your code with comments or a brief summary. If a user's request is insecure or follows bad practices, provide a better, more secure alternative.",
     "chat_format": "chatml",
     "params": {
-      "n_ctx": 4096,
       "n_batch": 512,
       "verbose": true
     }

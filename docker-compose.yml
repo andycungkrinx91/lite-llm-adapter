@@ -1,5 +1,9 @@
 version: '3.8'
 
+volumes:
+  mongodb_data:
+    driver: local
+
 services:
   backend:
     build: .
@@ -49,4 +53,33 @@ services:
       interval: 1s
       timeout: 60s
       retries: 30
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: librechat
+    ports:
+      - "3080:3080"
+    env_file:
+      - librechat.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
     restart: unless-stopped

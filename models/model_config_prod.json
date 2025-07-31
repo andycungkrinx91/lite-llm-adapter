@@ -3,147 +3,184 @@
     "id": "qwen3-0.6b",
     "model_type": "local_gguf",
     "path": "Qwen3-0.6B-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
     "id": "qwen2.5-coder-0.5b",
     "model_type": "local_gguf",
     "path": "Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf",
-    "system_prompt": "You are an expert coding assistant. Provide clear, concise, and correct code solutions.",
-    "chat_format": "chatml"
+    "system_prompt": "You are an expert coding assistant. Your primary goal is to provide accurate, efficient, and secure code. Always explain your code with comments or a brief summary. If a user's request is insecure or follows bad practices, provide a better, more secure alternative.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
     "id": "gemma-3-1b",
     "model_type": "local_gguf",
     "path": "gemma-3-1b-it-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "gemma-instruct"
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "gemma-instruct",
+    "params": {}
   },
   {
     "id": "llama3.2-1b",
     "model_type": "local_gguf",
     "path": "Llama-3.2-1B-Instruct-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "llama-3"
-  },
-  {
-    "id": "gemma-3-12b",
-    "model_type": "local_gguf",
-    "path": "gemma-3-12b-it-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "gemma-instruct"
-  },
-  {
-    "id": "qwen3-8b",
-    "model_type": "local_gguf",
-    "path": "Qwen3-8B-UD-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
-  },
-  {
-    "id": "qwen3-14b",
-    "model_type": "local_gguf",
-    "path": "Qwen3-14B-UD-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
-  },
-  {
-    "id": "deepseek-r1-qwen3-8b",
-    "model_type": "local_gguf",
-    "path": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
-    "system_prompt": "You are an expert coding assistant. Provide clear, concise, and correct code solutions.",
-    "chat_format": "deepseek-chat"
-  },
-  {
-    "id": "deepseek-r1-llama-8b",
-    "model_type": "local_gguf",
-    "path": "DeepSeek-R1-Distill-Llama-8B-UD-Q4_K_M.gguf",
-    "system_prompt": "You are an expert coding assistant. Provide clear, concise, and correct code solutions.",
-    "chat_format": "deepseek-chat"
-  },
-  {
-    "id": "phi4-mini",
-    "model_type": "local_gguf",
-    "path": "Phi-4-mini-instruct-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
-  },
-  {
-    "id": "phi4-mini-reasoning",
-    "model_type": "local_gguf",
-    "path": "Phi-4-mini-reasoning-UD-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant specialized in reasoning and logic problems.",
-    "chat_format": "chatml"
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "llama-3",
+    "params": {}
   },
   {
     "id": "llama3.2-3b",
     "model_type": "local_gguf",
     "path": "Llama-3.2-3B-Instruct-UD-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "llama-3"
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "llama-3",
+    "params": {}
   },
   {
-    "id": "llama3.1-8b",
+    "id": "qwen2.5-coder-3b",
     "model_type": "local_gguf",
-    "path": "Llama-3.1-8B-Instruct-UD-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "llama-3"
+    "path": "Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Your primary goal is to provide accurate, efficient, and secure code. Always explain your code with comments or a brief summary. If a user's request is insecure or follows bad practices, provide a better, more secure alternative.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "openchat3.5",
+    "id": "lora-qwen2.5-vl-3b",
     "model_type": "local_gguf",
-    "path": "openchat_3.5.Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "openchat"
+    "path": "LoRA-qwen2.5VL3b-2600.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "mistral-7b",
+    "id": "qwen3-4b-nyx-v1",
     "model_type": "local_gguf",
-    "path": "mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "mistral-instruct"
+    "path": "Qwen3-4B-Nyx-V1.Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "mistral-7b-claude",
+    "id": "qwen3-deepseek-reasoning",
     "model_type": "local_gguf",
-    "path": "mistral-7b-claude-chat.Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "mistral-instruct"
+    "path": "qwen-3-reasoning-combination-with-deepseek.Q4_K_M.gguf",
+    "system_prompt": "You are a meticulous AI assistant specializing in logical reasoning. Break down complex problems into smaller, sequential steps. Clearly state your assumptions and show your work. If a problem is unsolvable or lacks sufficient information, state that clearly.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "gpt4all-falcon",
+    "id": "qwen2.5-vl-diagram2sql",
     "model_type": "local_gguf",
-    "path": "gpt4all-falcon-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
+    "path": "Qwen2.5-VL-Diagrams2SQL-v2.Q4_K_M.gguf",
+    "system_prompt": "You are a data modeling expert specializing in converting diagrams into valid SQL schemas. Analyze the entities, attributes, and relationships carefully. Generate clean, well-formatted, and standard-compliant SQL (DDL). Include primary keys, foreign keys, and appropriate data types. If the diagram is ambiguous, point out the ambiguity.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "airoboros-llama2-gpt4.1-7b",
+    "id": "tiny-qwen3-coder-4b",
     "model_type": "local_gguf",
-    "path": "airoboros-l2-7b-gpt4-1.4.1.Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "llama-2"
+    "path": "TinyQwen3-distill-4B-coder.Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Your primary goal is to provide accurate, efficient, and secure code. Always explain your code with comments or a brief summary. If a user's request is insecure or follows bad practices, provide a better, more secure alternative.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "airoboros-llama2-gpt4.2-7b",
+    "id": "qwen3-zero-coder-0.8b",
     "model_type": "local_gguf",
-    "path": "airoboros-l2-7B-gpt4-2.0.Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "llama-2"
+    "path": "Qwen3-Zero-Coder-Reasoning-0.8B-NEO2-EX-D_AU-Q4_K_M-imat.gguf",
+    "system_prompt": "You are an expert coding assistant specializing in logical reasoning. Your primary goal is to provide accurate, efficient, and secure code. Break down complex problems into smaller, sequential steps. If a user's request is insecure, provide a better alternative.",
+    "chat_format": "chatml",
+    "params": {}
   },
   {
-    "id": "kimi-k2",
+    "id": "deepseek-coder-1.3b",
     "model_type": "local_gguf",
-    "path": "imatrix-mainline-pr9400-plus-kimi-k2-942c55cd5-Kimi-K2-Instruct-Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
+    "path": "deepseek-coder-1.3b-base.Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Your primary goal is to provide accurate, efficient, and secure code. Always explain your code with comments or a brief summary. If a user's request is insecure or follows bad practices, provide a better, more secure alternative.",
+    "chat_format": "deepseek-chat",
+    "params": {}
   },
   {
-    "id": "kimiko-claude",
+    "id": "blitzar-coder-4b",
     "model_type": "local_gguf",
-    "path": "Kimiko-Claude-FP16.Q4_K_M.gguf",
-    "system_prompt": "You are a helpful AI assistant.",
-    "chat_format": "chatml"
+    "path": "Blitzar-Coder-4B-F.1.Q4_K_M.gguf",
+    "system_prompt": "You are an expert coding assistant. Your primary goal is to provide accurate, efficient, and secure code. Always explain your code with comments or a brief summary. If a user's request is insecure or follows bad practices, provide a better, more secure alternative.",
+    "chat_format": "chatml",
+    "params": {}
+  },
+  {
+    "id": "gemma-3-4b-doc-writer",
+    "model_type": "local_gguf",
+    "path": "gemma-3-4b-document-writer.Q4_K_M.gguf",
+    "system_prompt": "You are a professional document writer. Your task is to generate well-structured, clear, and grammatically correct text. Adapt your tone and style to the requested document type (e.g., technical manual, marketing copy, formal report). Pay close attention to formatting and organization.",
+    "chat_format": "gemma-instruct",
+    "params": {}
+  },
+  {
+    "id": "gemma-3-4b-ko-reasoning",
+    "model_type": "local_gguf",
+    "path": "gemma-3-4b-it-Ko-Reasoning.Q4_K_M.gguf",
+    "system_prompt": "You are a meticulous AI assistant specializing in logical reasoning. Break down complex problems into smaller, sequential steps. Clearly state your assumptions and show your work. If a problem is unsolvable or lacks sufficient information, state that clearly.",
+    "chat_format": "gemma-instruct",
+    "params": {}
+  },
+  {
+    "id": "llama3.2-3b-uncensored",
+    "model_type": "local_gguf",
+    "path": "Llama-3.2-3B-Instruct-uncensored-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "llama-3",
+    "params": {}
+  },
+  {
+    "id": "llama-outetts-1b",
+    "model_type": "local_gguf",
+    "path": "Llama-OuteTTS-1.0-1B-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "llama-3",
+    "params": {}
+  },
+  {
+    "id": "phi4-mini",
+    "model_type": "local_gguf",
+    "path": "Phi-4-mini-instruct-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "chatml",
+    "params": {}
+  },
+  {
+    "id": "phi4-mini-reasoning",
+    "model_type": "local_gguf",
+    "path": "Phi-4-mini-reasoning-Q4_K_M.gguf",
+    "system_prompt": "You are a meticulous AI assistant specializing in logical reasoning. Break down complex problems into smaller, sequential steps. Clearly state your assumptions and show your work. If a problem is unsolvable or lacks sufficient information, state that clearly.",
+    "chat_format": "chatml",
+    "params": {}
+  },
+  {
+    "id": "phi3.5-mini-instruct-uncensored",
+    "model_type": "local_gguf",
+    "path": "Phi-3.5-mini-instruct_Uncensored-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "phi-3",
+    "params": {}
+  },
+  {
+    "id": "smolvlm2-500m-video",
+    "model_type": "local_gguf",
+    "path": "SmolVLM2-500M-Video-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are an AI assistant specialized in analyzing and describing video content. Based on the provided information (e.g., frame descriptions, transcripts), describe the events, objects, and actions accurately. Do not infer information that is not explicitly present in the data.",
+    "chat_format": "chatml",
+    "params": {}
+  },
+  {
+    "id": "smolvlm2-2.2b-instruct",
+    "model_type": "local_gguf",
+    "path": "SmolVLM2-2.2B-Instruct-Q4_K_M.gguf",
+    "system_prompt": "You are a helpful and harmless AI assistant. Your responses should be accurate, relevant, and safe. If you are unsure of an answer or a request is ambiguous, ask for clarification. Do not invent information.",
+    "chat_format": "chatml",
+    "params": {}
   }
 ]
