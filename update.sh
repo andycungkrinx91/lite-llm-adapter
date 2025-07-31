@@ -51,7 +51,7 @@ else
         else
             echo "Invalid selection. Please choose 1 or 2."
         fi
-    done
+    done < /dev/tty # Explicitly read from the terminal to fix interactivity issues with sudo
 fi
 
 if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "prod" ]]; then
@@ -71,10 +71,18 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
+info "Auto-detecting default git branch..."
+DEFAULT_BRANCH=$(sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && git remote show origin | grep 'HEAD branch' | cut -d' ' -f5")
+if [ -z "$DEFAULT_BRANCH" ]; then
+    warn "Could not auto-detect default branch. Falling back to 'master' as a default."
+    DEFAULT_BRANCH="master"
+fi
+info "Will reset to 'origin/$DEFAULT_BRANCH'"
+
 info "Fetching the latest code from git..."
 # Running git commands as the application user for correct permissions.
 # We use 'git reset --hard' to ensure a clean update, discarding any local modifications.
-sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && git fetch origin && git reset --hard origin/master"
+sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && git fetch origin && git reset --hard origin/$DEFAULT_BRANCH"
 
 info "Stopping the '$SERVICE_NAME' service..."
 systemctl stop "$SERVICE_NAME"
