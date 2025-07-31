@@ -10,6 +10,7 @@ class AppConfig(BaseSettings):
     DEFAULT_MODEL_ID: str = "qwen3-0.6b"
     MODEL_BASE_PATH: str = "/app/models/gguf_models"
     REDIS_URL: str = "redis://localhost:6379"
+    REDIS_KEY_PREFIX: str = "llm_adapter"
     CPU_THREADS: int = 4
     AUTH: str = "your-default-secret-token" # A default for safety
     MAX_CONCURRENT_REQUESTS: int = 3

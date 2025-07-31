@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
         print("Successfully connected to Redis.")
 
         # Initialize the concurrency queue with available processing slots
-        queue_key = "llm_processing_slots"
+        queue_key = f"{app_config.REDIS_KEY_PREFIX}:processing_slots"
         max_requests = app_config.MAX_CONCURRENT_REQUESTS
         await redis_client.delete(queue_key) # Clear any old state on restart
         if max_requests > 0:

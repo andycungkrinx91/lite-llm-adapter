@@ -1,5 +1,7 @@
 import json
 import os
+import asyncio
+from functools import partial
 from typing import Dict, Optional, Any
 
 from services.local_llm import LocalLLM
@@ -11,6 +13,10 @@ MODEL_CONFIGS: Dict[str, Any] = {}
 LLM_INSTANCES: Dict[str, LocalLLM] = {}
 # FAILED_MODELS stores models that were configured but failed to load, with the reason.
 FAILED_MODELS: Dict[str, str] = {}
+# MODEL_LOCKS prevents race conditions when two requests for the same new model arrive simultaneously.
+MODEL_LOCKS: Dict[str, asyncio.Lock] = {}
+# DEFAULT_PARAMS stores the default generation parameters loaded from JSON.
+DEFAULT_PARAMS: Dict[str, Any] = {}
 
 def load_models(app_config: AppConfig):
     """
@@ -26,10 +32,10 @@ def load_models(app_config: AppConfig):
     print(f"Running in '{env}' mode. Loading models from '{config_filename}'...")
 
     # Load default parameters first
-    default_params = {}
+    global DEFAULT_PARAMS
     try:
         with open(defaults_path, 'r') as f:
-            default_params = json.load(f).get("default_params", {})
+            DEFAULT_PARAMS = json.load(f).get("default_params", {})
     except FileNotFoundError:
         print(f"Info: {defaults_filename} not found. No default params will be applied.")
     except json.JSONDecodeError:
@@ -48,61 +54,61 @@ def load_models(app_config: AppConfig):
         if "id" in config:
             MODEL_CONFIGS[config["id"]] = config
 
+    # Pre-check configurations and create locks, but do not load models yet.
     for model_config in model_configs:
         model_id = model_config.get("id")
-        model_type = model_config.get("model_type")
-
         if not model_id:
             print("Skipping model config due to missing 'id'.")
             continue
         
-        print(f"Loading model '{model_id}'...")
-        if model_type == 'local_gguf' or model_type == 'local':
-            relative_path = model_config.get("path") # Get the filename from config
-            if not relative_path:
-                reason = "Configuration is missing the 'path' attribute for the model file."
-                print(f"Warning: {reason} for model '{model_id}'. Skipping.")
-                FAILED_MODELS[model_id] = reason
-                continue
+        # Create a lock for each potential model to manage on-demand loading.
+        MODEL_LOCKS[model_id] = asyncio.Lock()
 
-            model_path = os.path.join(app_config.MODEL_BASE_PATH, relative_path) # Construct full path
-            if not os.path.exists(model_path):
-                reason = f"Model file not found at path: {model_path}"
-                print(f"Warning: {reason} for model '{model_id}'. Skipping.")
-                FAILED_MODELS[model_id] = reason
-                continue
-            
-            # Start with default params, then merge model-specific params
-            params = default_params.copy()
-            model_specific_params = model_config.get("params", {})
-            params.update(model_specific_params)
+        # Perform an initial check to see if the model file exists.
+        # This allows the API to fail fast for misconfigured models.
+        relative_path = model_config.get("path")
+        if not relative_path:
+            FAILED_MODELS[model_id] = "Configuration is missing the 'path' attribute."
+            continue
+        
+        model_path = os.path.join(app_config.MODEL_BASE_PATH, relative_path)
+        if not os.path.exists(model_path):
+            FAILED_MODELS[model_id] = f"Model file not found at path: {model_path}"
 
-            # Only set chat_format if it's explicitly defined in the config.
-            # Otherwise, let llama-cpp-python auto-detect it from the GGUF metadata.
-            if "chat_format" in model_config:
-                params["chat_format"] = model_config["chat_format"]
+async def get_model(model_id: str, app_config: AppConfig) -> Optional[Any]:
+    """
+    Retrieves a model instance by its ID, loading it on-demand if it's not already in memory.
+    This function is thread-safe and safe for concurrent asyncio calls.
+    """
+    # First, check if the instance is already loaded. This is the fast path.
+    if model_id in LLM_INSTANCES:
+        return LLM_INSTANCES.get(model_id)
 
-            params["n_threads"] = app_config.CPU_THREADS
+    # If not loaded, acquire a lock specific to this model_id to prevent race conditions.
+    async with MODEL_LOCKS[model_id]:
+        # Double-check if another request loaded the model while we were waiting for the lock.
+        if model_id in LLM_INSTANCES:
+            return LLM_INSTANCES.get(model_id)
 
-            try:
-                LLM_INSTANCES[model_id] = LocalLLM(
-                    model_path=model_path,
-                    model_id=model_id,
-                    params=params
-                )
-                print(f"Successfully loaded local model: {model_id}")
-            except Exception as e:
-                reason = f"Error during initialization: {e}"
-                print(f"Error loading local model '{model_id}': {reason}")
-                FAILED_MODELS[model_id] = reason
+        # If we are here, it's our job to load the model.
+        print(f"Model '{model_id}' not in cache. Loading on-demand...")
+        model_config = MODEL_CONFIGS.get(model_id)
+        model_path = os.path.join(app_config.MODEL_BASE_PATH, model_config["path"])
 
-        # Add logic for other model types (OpenAI, Google) here if needed
-        # elif model_type == 'openai':
-        #     MODELS[model_id] = OpenAIModel(...)
+        # Load default params and merge model-specific ones
+        params = DEFAULT_PARAMS.copy()
+        params.update(model_config.get("params", {}))
+        if "chat_format" in model_config:
+            params["chat_format"] = model_config["chat_format"]
+        params["n_threads"] = app_config.CPU_THREADS
 
-        else:
-            print(f"Warning: Unknown model_type '{model_type}' for model '{model_id}'. Skipping.")
+        # The Llama() constructor is a blocking, CPU-intensive call.
+        # We must run it in a thread pool to avoid blocking the main asyncio event loop.
+        loop = asyncio.get_running_loop()
+        llm_instance = await loop.run_in_executor(
+            None, partial(LocalLLM, model_path=model_path, model_id=model_id, params=params)
+        )
 
-def get_model(model_id: str) -> Optional[Any]:
-    """Retrieves a loaded model instance by its ID."""
-    return LLM_INSTANCES.get(model_id)
+        LLM_INSTANCES[model_id] = llm_instance
+        print(f"✅ Successfully loaded and cached model: {model_id}")
+        return llm_instance

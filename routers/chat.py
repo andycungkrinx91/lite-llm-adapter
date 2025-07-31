@@ -58,7 +58,7 @@ async def create_chat_completion(
             detail=f"Model '{found_model_id}' is configured but failed to load. Reason: {FAILED_MODELS[found_model_id]}. Please check server logs and ensure the model file is correctly placed.",
         )
 
-    llm = get_model(found_model_id)
+    llm = await get_model(found_model_id, app_config)
     model_config = MODEL_CONFIGS.get(found_model_id)
 
     # Case 3: The model is configured and didn't fail, but is still not available.
@@ -72,7 +72,7 @@ async def create_chat_completion(
     # --- Session Management ---
     # If a session_id is provided, continue the conversation. Otherwise, start a new one.
     session_id = request.session_id or str(uuid.uuid4())
-    session_key = f"session:{session_id}"
+    session_key = f"{app_config.REDIS_KEY_PREFIX}:session:{session_id}"
     try:
         history_json = await redis_client.get(session_key)
         history = json.loads(history_json) if history_json else []
@@ -106,7 +106,7 @@ async def create_chat_completion(
     request_params = request.model_dump(exclude_unset=True, exclude={"model", "messages", "stream", "session_id"})
 
     # --- Redis Queueing Logic ---
-    queue_key = "llm_processing_slots"
+    queue_key = f"{app_config.REDIS_KEY_PREFIX}:processing_slots"
     slot = None
     
     # Only use the queue if it's enabled (max_requests > 0)
