@@ -84,9 +84,12 @@ info "Fetching the latest code from git..."
 # We use 'git reset --hard' to ensure a clean update, discarding any local modifications.
 sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && git fetch origin && git reset --hard origin/$DEFAULT_BRANCH"
 
-info "Stopping the '$SERVICE_NAME' service..."
-systemctl stop "$SERVICE_NAME"
-info "Service stopped."
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+    info "Stopping the '$SERVICE_NAME' service..."
+    systemctl stop "$SERVICE_NAME"
+else
+    info "Service '$SERVICE_NAME' is not running, no need to stop it."
+fi
 
 info "Setting environment to '$ENVIRONMENT' in .env file..."
 # Use sed to update the ENVIRONMENT variable in the .env file, running as the app user.
@@ -100,7 +103,7 @@ info "This will download new models from the config without deleting existing on
 sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && ./models-downloader.sh '$ENVIRONMENT' --no-cleanup"
 
 info "Restarting the '$SERVICE_NAME' service with the updated code..."
-systemctl restart "$SERVICE_NAME"
+systemctl start "$SERVICE_NAME"
 
 info "Waiting for the service to become available (up to 30 seconds)..."
 for i in {1..15}; do
