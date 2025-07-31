@@ -130,11 +130,6 @@ info "Running the installer.sh script inside the container..."
 info "Using --non-interactive flag for automated setup."
 lxc exec "$CONTAINER_NAME" -- /bin/bash /app/installer.sh --non-interactive
 
-info "Running the models-downloader.sh script for 'dev' environment..."
-# We must change into the application directory before running the script,
-# so it has the correct permissions to create the 'models' sub-directory.
-lxc exec "$CONTAINER_NAME" -- sudo -u "$APP_USER" -- sh -c "cd '$APP_INSTALL_DIR' && ./models-downloader.sh dev"
-
 info "Starting the service to apply changes and test..."
 lxc exec "$CONTAINER_NAME" -- sudo systemctl start lite-llm-adapter
 

@@ -111,12 +111,15 @@ async def create_chat_completion(
     
     # Only use the queue if it's enabled (max_requests > 0)
     if app_config.MAX_CONCURRENT_REQUESTS > 0:
+        logger.info(f"Request for model '{found_model_id}' is waiting for a processing slot...")
         try:
             # Block and wait for a slot for up to 2 minutes.
             slot = await redis_client.blpop(queue_key, timeout=120)
         except Exception as e:
             logger.error(f"Redis blpop command failed: {e}")
             raise HTTPException(status_code=503, detail="Could not connect to request queue.")
+        
+        logger.info(f"Processing slot acquired for model '{found_model_id}'. Starting generation.")
         
         if slot is None:
             raise HTTPException(status_code=503, detail="All processing slots are busy; request timed out.")

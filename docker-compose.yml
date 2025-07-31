@@ -25,9 +25,9 @@ services:
     # We use Gunicorn as a process manager for Uvicorn workers for production-grade stability.
     # -k uvicorn.workers.UvicornWorker: Use Uvicorn's high-performance worker class.
     # -w 1: Use a single worker to avoid duplicating the LLM in memory.
-    # --timeout 120: Increase the worker timeout to handle long-running inference tasks.
+    # --timeout 600: Use a long timeout (10 minutes) to handle slow model loading and long inference tasks.
     # --bind 0.0.0.0:8000: Bind to the correct host and port.
-    command: gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 120 --pythonpath /app main:app --bind 0.0.0.0:8000
+    command: gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 600 --pythonpath /app main:app --bind 0.0.0.0:8000
     depends_on:
       redis:
         condition: service_healthy

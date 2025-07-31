@@ -185,6 +185,13 @@ info "Reloading systemd daemon and enabling the service..."
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME.service"
 
+# If running in non-interactive mode (for testing), download dev models automatically.
+if [ "$NON_INTERACTIVE" = true ]; then
+    info "Non-interactive mode detected. Downloading development models..."
+    # Run the downloader as the application user.
+    sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && ./models-downloader.sh dev"
+fi
+
 info "Installation complete!"
 warn "----------------------------------------------------------------"
 warn "IMPORTANT: You must now download your GGUF models and place them"
