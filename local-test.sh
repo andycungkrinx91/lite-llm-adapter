@@ -21,6 +21,8 @@ readonly BASE_IMAGE="ubuntu:24.04" # Use the dedicated Ubuntu remote for better 
 readonly PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 readonly APP_USER="llm_backend" # This must match the user in installer.sh --non-interactive
 readonly APP_INSTALL_DIR="/home/app/site/lite-llm-adapter" # This must match the dir in installer.sh
+readonly HOST_MODELS_DIR="${PROJECT_DIR}/models/gguf_models"
+readonly CONTAINER_MODELS_PATH="${APP_INSTALL_DIR}/models/gguf_models"
 
 # --- Helper Functions ---
 info() {
@@ -103,6 +105,11 @@ fi
 # --- Part 2: Run the test environment using the minimal image ---
 info "--- Starting Test Environment Setup ---"
 
+info "Downloading development models to the host..."
+if ! bash "${PROJECT_DIR}/models-downloader.sh"; then
+    error "Failed to download development models. Aborting."
+fi
+
 # Clean up any previous container with the same name for a fresh start.
 if lxc info "$CONTAINER_NAME" &>/dev/null; then
     info "Found existing '$CONTAINER_NAME' container. Deleting it for a clean run."
@@ -129,6 +136,9 @@ chmod +x "$PROJECT_DIR"/??-*/install.sh 2>/dev/null || true
 info "Running the installer.sh script inside the container..."
 info "Using --non-interactive flag for automated setup."
 lxc exec "$CONTAINER_NAME" -- /bin/bash /app/installer.sh --non-interactive
+
+info "Mounting models directory into the container..."
+lxc config device add "$CONTAINER_NAME" models-mount disk source="$HOST_MODELS_DIR" path="$CONTAINER_MODELS_PATH"
 
 info "Starting the service to apply changes and test..."
 lxc exec "$CONTAINER_NAME" -- sudo systemctl start lite-llm-adapter
