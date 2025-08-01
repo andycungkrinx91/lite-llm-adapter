@@ -119,6 +119,11 @@ fi
 info "Launching new container '$CONTAINER_NAME' from image '$MINIMAL_IMAGE_ALIAS'..."
 lxc launch "$MINIMAL_IMAGE_ALIAS" "$CONTAINER_NAME"
 
+info "Applying resource limits to the container..."
+lxc config set "$CONTAINER_NAME" limits.cpu 4
+lxc config set "$CONTAINER_NAME" limits.memory 8GB
+info "Set container limits: 4 CPU cores, 8GB RAM."
+
 info "Waiting for container to boot and initialize..."
 lxc exec "$CONTAINER_NAME" -- cloud-init status --wait
 
