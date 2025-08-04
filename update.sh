@@ -9,11 +9,21 @@ set -e
 
 # --- Helper Functions ---
 info() {
-    echo "[INFO] $1"
+    local message="[INFO] $1"
+    echo "$message"
+    logger -t "lite-llm-updater" -p user.info "$1"
+}
+
+warn() {
+    local message="[WARN] $1"
+    echo "$message"
+    logger -t "lite-llm-updater" -p user.warn "$1"
 }
 
 error() {
-    echo "[ERROR] $1" >&2
+    local message="[ERROR] $1"
+    echo "$message" >&2
+    logger -t "lite-llm-updater" -p user.err "$1"
     exit 1
 }
 
@@ -31,10 +41,11 @@ fi
 
 # Extract the app user and directory from the service file
 APP_USER=$(grep -oP '(?<=^User=).*' "$SERVICE_FILE")
+APP_GROUP=$(grep -oP '(?<=^Group=).*' "$SERVICE_FILE")
 APP_DIR=$(grep -oP '(?<=^WorkingDirectory=).*' "$SERVICE_FILE")
 VENV_DIR="$APP_DIR/venv"
 
-if [ -z "$APP_USER" ] || [ -z "$APP_DIR" ]; then
+if [ -z "$APP_USER" ] || [ -z "$APP_GROUP" ] || [ -z "$APP_DIR" ]; then
     error "Could not determine application user or directory from $SERVICE_FILE. The service file may be corrupted."
 fi
 
@@ -94,6 +105,33 @@ fi
 info "Setting environment to '$ENVIRONMENT' in .env file..."
 # Use sed to update the ENVIRONMENT variable in the .env file, running as the app user.
 sudo -u "$APP_USER" -- sed -i "s/^ENVIRONMENT=.*/ENVIRONMENT=$ENVIRONMENT/" "$APP_DIR/.env"
+
+info "Re-creating systemd service file to apply any updates..."
+cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=Lite-LLM Adapter Service
+After=network.target redis-server.service
+Requires=redis-server.service
+
+[Service]
+User=$APP_USER
+Group=$APP_GROUP
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$APP_DIR/.env
+# The --log-file - flag tells gunicorn to log to stdout.
+# systemd's 'journal' setting for StandardOutput/Error captures this stream.
+ExecStart=$VENV_DIR/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 600 --bind 0.0.0.0:8000 --log-file - --pythonpath $APP_DIR main:app
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+info "Reloading systemd daemon..."
+systemctl daemon-reload
 
 info "Updating Python dependencies..."
 sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && CMAKE_ARGS='-DLLAMA_AVX2=ON -DLLAMA_CUBLAS=OFF -DLLAMA_HIPBLAS=OFF -DLLAMA_CLBLAST=OFF' '$VENV_DIR/bin/pip' install --no-cache-dir -r requirements.txt"

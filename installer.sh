@@ -8,15 +8,21 @@ set -e
 
 # --- Helper Functions ---
 info() {
-    echo "[INFO] $1"
+    local message="[INFO] $1"
+    echo "$message"
+    logger -t "lite-llm-installer" -p user.info "$1"
 }
 
 warn() {
-    echo "[WARN] $1"
+    local message="[WARN] $1"
+    echo "$message"
+    logger -t "lite-llm-installer" -p user.warn "$1"
 }
 
 error() {
-    echo "[ERROR] $1" >&2
+    local message="[ERROR] $1"
+    echo "$message" >&2
+    logger -t "lite-llm-installer" -p user.err "$1"
     exit 1
 }
 
@@ -104,7 +110,6 @@ fi
 info "Creating application directories..."
 mkdir -p "$APP_DIR"
 mkdir -p "$MODEL_DIR"
-mkdir -p "$LOG_DIR"
 
 # --- 3. Application Setup ---
 info "Copying application files to $APP_DIR..."
@@ -171,9 +176,11 @@ User=$APP_USER
 Group=$APP_GROUP
 WorkingDirectory=$APP_DIR
 EnvironmentFile=$APP_DIR/.env
-ExecStart=$VENV_DIR/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 600 --bind 0.0.0.0:8000 --pythonpath $APP_DIR main:app
-StandardOutput=append:$LOG_DIR/app.log
-StandardError=append:$LOG_DIR/error.log
+# The --log-file - flag tells gunicorn to log to stdout.
+# systemd's 'journal' setting for StandardOutput/Error captures this stream.
+ExecStart=$VENV_DIR/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 1 --timeout 600 --bind 0.0.0.0:8000 --log-file - --pythonpath $APP_DIR main:app
+StandardOutput=journal
+StandardError=journal
 Restart=on-failure
 RestartSec=5s
 
@@ -201,4 +208,4 @@ warn "The application will not find any models until you do this."
 warn "----------------------------------------------------------------"
 info "To start the service now, run: sudo systemctl start $SERVICE_NAME"
 info "To check the service status, run: sudo systemctl status $SERVICE_NAME"
-info "To view logs, run: sudo tail -f $LOG_DIR/app.log"
+info "To view logs, run: sudo journalctl -u $SERVICE_NAME -f"

@@ -110,8 +110,8 @@ sudo journalctl -u lite-llm-adapter -f
 | `ENVIRONMENT`          | `dev` or `prod` for model config | `dev` |
 | `DEFAULT_MODEL_ID`     | Default fallback model ID | `qwen3-0.6b` |
 | `MODEL_BASE_PATH`      | Directory for GGUF files | `/app/models/gguf_models` |
-| `REDIS_URL`            | Redis connection URI | `redis://localhost:6379` |
-| `CPU_THREADS`          | Inference threads for `llama.cpp` | `4` |
+| `REDIS_URL`            | Redis connection URI. Use `redis://redis:6379` for Docker, `redis://localhost:6379` for native. | `redis://redis:6379` |
+| `CPU_THREADS`          | Inference threads for `llama.cpp`. Installer defaults to all cores (`nproc`). | `8` |
 | `AUTH`                 | Bearer token for auth | random |
 | `MAX_CONCURRENT_REQUESTS` | Request concurrency limit | `1` |
 
@@ -213,7 +213,7 @@ You can override any default generation parameter, such as `temperature`.
 
 | ❗ Problem                           | 💡 Solution |
 |------------------------------------|-------------|
-| **High CPU Usage** (100%)          | Ensure `CPU_THREADS` is set to a reasonable number (e.g., 4) in your `.env` file. |
+| **High CPU Usage** (100%)          | The installer defaults to using all cores. For best performance, set `CPU_THREADS` in your `.env` file to the number of *physical* CPU cores. |
 | **Slow Performance**               | Reduce `n_batch` / `n_ctx` in model configs, set `MAX_CONCURRENT_REQUESTS=1`. |
 | **Redis Errors** / History Not Stored | Check `REDIS_URL` in `.env` is correct for your environment (Docker vs. native). |
 
@@ -231,9 +231,11 @@ This will spin up a full containerized environment and simulate an end-to-end te
 ---
 
 ## 🛠️ **Tech Stack**
-- � **GGUF** - Local model format
-- ⚙️ **Gunicorn** - Production process manager
-
+- **Backend Framework**: FastAPI
+- **LLM Engine**: llama-cpp-python with AVX2
+- **WSGI Server**: Gunicorn + Uvicorn
+- **Concurrency & Caching**: Redis
+- **Deployment**: Docker & Systemd
 
 ## ©️ Author
 Made with ☕ by **Andy Setiyawan**, 2025.
