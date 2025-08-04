@@ -9,7 +9,7 @@
 |----------------------------------|----------------|
 | **Multi-Model Serving**        | Dynamically load and serve multiple GGUF models from a simple JSON configuration. |
 | **OpenAI-Compatible API**      | Drop-in replacement for OpenAI with `/v1/chat/completions` & `/v1/models` endpoints. |
-| **Optimized CPU Inference**    | Built with `llama.cpp` and OpenBLAS for high-performance, multi-threaded CPU inference. |
+| **Optimized CPU Inference**    | Built with `llama.cpp` and AVX2 for high-performance, multi-threaded CPU inference. |
 | **Stateful, Streaming Chat**   | Supports persistent conversations using a `session_id` and `text/event-stream` for real-time responses. |
 | **Concurrency Management**     | A Redis-based queue ensures smooth processing and prevents server overloads. |
 | **Secure & Production-Ready**  | Protects endpoints with bearer token authentication. Deploy with Docker or as a native `systemd` service. |
@@ -112,7 +112,6 @@ sudo journalctl -u lite-llm-adapter -f
 | `MODEL_BASE_PATH`      | Directory for GGUF files | `/app/models/gguf_models` |
 | `REDIS_URL`            | Redis connection URI | `redis://localhost:6379` |
 | `CPU_THREADS`          | Inference threads for `llama.cpp` | `4` |
-| `OPENBLAS_NUM_THREADS` | **Crucial for CPU control.** Must match `CPU_THREADS`. | `4` |
 | `AUTH`                 | Bearer token for auth | random |
 | `MAX_CONCURRENT_REQUESTS` | Request concurrency limit | `1` |
 
@@ -214,7 +213,7 @@ You can override any default generation parameter, such as `temperature`.
 
 | ❗ Problem                           | 💡 Solution |
 |------------------------------------|-------------|
-| **High CPU Usage** (100%)          | Ensure `CPU_THREADS` and `OPENBLAS_NUM_THREADS` are set to a low number (e.g., 4) in your `.env` file. |
+| **High CPU Usage** (100%)          | Ensure `CPU_THREADS` is set to a reasonable number (e.g., 4) in your `.env` file. |
 | **Slow Performance**               | Reduce `n_batch` / `n_ctx` in model configs, set `MAX_CONCURRENT_REQUESTS=1`. |
 | **Redis Errors** / History Not Stored | Check `REDIS_URL` in `.env` is correct for your environment (Docker vs. native). |
 

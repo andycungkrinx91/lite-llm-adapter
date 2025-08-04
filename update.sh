@@ -96,7 +96,7 @@ info "Setting environment to '$ENVIRONMENT' in .env file..."
 sudo -u "$APP_USER" -- sed -i "s/^ENVIRONMENT=.*/ENVIRONMENT=$ENVIRONMENT/" "$APP_DIR/.env"
 
 info "Updating Python dependencies..."
-sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && CMAKE_ARGS='-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS' '$VENV_DIR/bin/pip' install --no-cache-dir -r requirements.txt"
+sudo -u "$APP_USER" -- sh -c "cd '$APP_DIR' && CMAKE_ARGS='-DLLAMA_AVX2=ON -DLLAMA_CUBLAS=OFF -DLLAMA_HIPBLAS=OFF -DLLAMA_CLBLAST=OFF' '$VENV_DIR/bin/pip' install --no-cache-dir -r requirements.txt"
 
 info "Checking for new or updated models to download..."
 info "This will download new models from the config without deleting existing ones."

@@ -80,9 +80,9 @@ SERVICE_NAME="lite-llm-adapter"
 info "Starting Lite-LLM Adapter installation..."
 # --- 1. System Dependencies ---
 info "Updating package lists and installing dependencies..."
-info "This includes build-essential and libopenblas-dev for compiling llama-cpp-python with CPU acceleration."
+info "This includes build-essential for compiling llama-cpp-python with CPU acceleration (AVX2)."
 apt-get update
-apt-get install -y python3.12 python3.12-venv python3-pip redis-server rsync build-essential libopenblas-dev
+apt-get install -y python3.12 python3.12-venv python3-pip redis-server rsync build-essential
 
 info "Enabling and starting Redis service..."
 systemctl enable --now redis-server.service
@@ -115,11 +115,11 @@ rsync -a --exclude='models/gguf_models/*' "$SCRIPT_DIR/" "$APP_DIR/"
 info "Creating Python virtual environment at $VENV_DIR..."
 python3.12 -m venv "$VENV_DIR"
 
-info "Installing Python dependencies with OpenBLAS acceleration for llama-cpp-python..."
+info "Installing Python dependencies with AVX2 acceleration for llama-cpp-python..."
 # The CMAKE_ARGS environment variable instructs pip to build llama-cpp-python from source
-# with BLAS support, which significantly improves performance on CPUs. Pip will automatically
+# with AVX2 support, which significantly improves performance on compatible CPUs. Pip will automatically
 # pick up llama-cpp-python from the requirements file and build it from source.
-CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" "$VENV_DIR/bin/pip" install --no-cache-dir -r "$APP_DIR/requirements.txt"
+CMAKE_ARGS="-DLLAMA_AVX2=ON -DLLAMA_CUBLAS=OFF -DLLAMA_HIPBLAS=OFF -DLLAMA_CLBLAST=OFF" "$VENV_DIR/bin/pip" install --no-cache-dir -r "$APP_DIR/requirements.txt"
 
 # --- 4. Configuration (.env file) ---
 info "Configuring production .env file..."
@@ -142,7 +142,6 @@ MODEL_BASE_PATH=$MODEL_DIR
 REDIS_URL=redis://localhost:6379
 REDIS_KEY_PREFIX=llm_adapter
 CPU_THREADS=$(nproc)
-OPENBLAS_NUM_THREADS=$(nproc)
 AUTH=$AUTH_TOKEN
 MAX_CONCURRENT_REQUESTS=1
 EOF

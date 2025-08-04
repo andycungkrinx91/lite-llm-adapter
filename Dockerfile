@@ -4,16 +4,15 @@ FROM python:3.12-slim AS cpu-builder
 
 WORKDIR /app
 
-# Set environment variables to build with OpenBLAS for CPU acceleration,
-# while explicitly disabling all GPU backends. This is crucial for performance.
-ENV CMAKE_ARGS="-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS -DLLAMA_CUBLAS=OFF -DLLAMA_HIPBLAS=OFF -DLLAMA_CLBLAST=OFF"
+# Set environment variables to build with AVX2 for modern CPU acceleration,
+# while explicitly disabling all GPU backends.
+ENV CMAKE_ARGS="-DLLAMA_AVX2=ON -DLLAMA_CUBLAS=OFF -DLLAMA_HIPBLAS=OFF -DLLAMA_CLBLAST=OFF"
 ENV FORCE_CMAKE=1
 
 # Install system dependencies required for building wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
-    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install dependencies. This is done in a separate layer to leverage Docker's cache.
@@ -26,12 +25,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.12-slim
 
 # Install runtime dependencies for the compiled llama.cpp library.
-# - libgomp1 is the GNU OpenMP library, for multi-threaded CPU inference.
-# - libopenblas0 is the runtime library for OpenBLAS, for accelerated matrix math.
+# - libgomp1 is the GNU OpenMP library, essential for multi-threaded CPU inference.
 # Also create a non-root user for security.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
-    libopenblas0 \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && addgroup --system app \
